@@ -1,0 +1,181 @@
+"use client"
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Calculator, Printer, FileDown } from "lucide-react"
+import { useTeacherStore } from "@/store/useStore"
+import { useEffect, useState } from "react"
+import { exportToCSV } from "@/lib/export-utils"
+
+const computeAverage = (grades: any[], requiredSubjects: string[]) => {
+  if (grades.length === 0) return "0"
+  
+  let sum = 0;
+  let count = 0;
+  
+  requiredSubjects.forEach(sub => {
+    const gradeEntry = grades.find(g => g.subject === sub)
+    if (gradeEntry) {
+       sum += gradeEntry.quarterGrade;
+       count++;
+    }
+  })
+  
+  if (count === 0) return "0";
+  return (sum / count).toFixed(2);
+}
+
+export default function CompositeGradesPage() {
+  const [mounted, setMounted] = useState(false)
+  const students = useTeacherStore(s => s.students)
+  const gradesMap = useTeacherStore(s => s.grades)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
+  // The core subjects that should have grades
+  const subjects = ['Filipino', 'English', 'Mathematics', 'Science', 'Ap', 'Epp/tle', 'Mapeh', 'Esp']
+
+  const handleExport = async () => {
+      try {
+          const exportStudents = students.map(s => {
+              const sGrades = gradesMap[s.lrn] || []
+              return { ...s, average: parseFloat(computeAverage(sGrades, subjects)) }
+          })
+          const res = await fetch('/api/export/composite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ students: exportStudents })
+          });
+          if (!res.ok) throw new Error("Template mapping failed. Ensure 'Composite G8 ARIES.xlsx' is in public/templates/");
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `CAMIGAO_Composite_Grades.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+      } catch (err: any) {
+          alert("Native Export Error: " + err.message);
+      }
+  }
+  return (
+    <div className="flex flex-col gap-6">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Composite Grades (Form 138 Data)</h1>
+          <p className="text-muted-foreground mt-1">Grade 8 - ARIES • Quarter 1</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700">
+             <Printer className="mr-2 h-4 w-4" /> Print Composite
+          </Button>
+          <Button onClick={handleExport} className="bg-[#1ca560] hover:bg-[#158045]">
+            <FileDown className="mr-2 h-4 w-4" /> Export to Excel
+          </Button>
+        </div>
+      </div>
+
+      <Card className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200/60 overflow-hidden">
+        <CardHeader className="bg-white/50 border-b flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle>Master Grade Aggregator</CardTitle>
+            <CardDescription className="mt-1">
+              Automatically synchronized from Subject Teacher ECR submissions.
+            </CardDescription>
+          </div>
+          <Button variant="secondary" size="sm">
+            <Calculator className="mr-2 h-4 w-4" /> Finalize General Average
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[1000px]">
+            <TableHeader className="bg-slate-50/50">
+              <TableRow>
+                <TableHead className="w-[50px]">No.</TableHead>
+                <TableHead className="w-[250px] border-r">Learner's Name</TableHead>
+                <TableHead className="text-center font-semibold">Filipino</TableHead>
+                <TableHead className="text-center font-semibold">English</TableHead>
+                <TableHead className="text-center font-semibold">Math</TableHead>
+                <TableHead className="text-center font-semibold">Science</TableHead>
+                <TableHead className="text-center font-semibold">AP</TableHead>
+                <TableHead className="text-center font-semibold">TLE</TableHead>
+                <TableHead className="text-center font-semibold">MAPEH</TableHead>
+                <TableHead className="text-center font-semibold border-r">EsP</TableHead>
+                <TableHead className="text-center font-bold text-slate-800 bg-slate-100/50">Gen. Average</TableHead>
+                <TableHead className="text-center font-bold text-slate-800 bg-slate-100/50">Remarks</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Male Section Header */}
+              <TableRow className="bg-blue-50/30">
+                <TableCell colSpan={12} className="font-semibold text-xs tracking-wider text-blue-800">MALE</TableCell>
+              </TableRow>
+              {students.filter(s => s.sex === 'M').map((student, idx) => {
+                const sGrades = gradesMap[student.lrn] || []
+                const avg = parseFloat(computeAverage(sGrades, subjects))
+                const remarks = avg >= 75 ? "Passed" : (avg === 0 ? "Pending" : "Failed")
+                
+                const getGrade = (sub: string) => sGrades.find(g => g.subject === sub)?.quarterGrade || '-'
+                
+                return (
+                  <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="text-slate-500">{idx + 1}</TableCell>
+                    <TableCell className="font-medium border-r">{student.name}</TableCell>
+                    <TableCell className="text-center">{getGrade('Filipino')}</TableCell>
+                    <TableCell className="text-center">{getGrade('English')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Mathematics')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Science')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Ap')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Epp/tle')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Mapeh')}</TableCell>
+                    <TableCell className="text-center border-r">{getGrade('Esp')}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-900 bg-slate-50/50">{avg > 0 ? avg : '-'}</TableCell>
+                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#1ca560]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
+                  </TableRow>
+                )
+              })}
+
+              {/* Female Section Header */}
+              <TableRow className="bg-pink-50/30">
+                <TableCell colSpan={12} className="font-semibold text-xs tracking-wider text-pink-800">FEMALE</TableCell>
+              </TableRow>
+              {students.filter(s => s.sex === 'F').map((student, idx) => {
+                const sGrades = gradesMap[student.lrn] || []
+                const avg = parseFloat(computeAverage(sGrades, subjects))
+                const remarks = avg >= 75 ? "Passed" : (avg === 0 ? "Pending" : "Failed")
+                
+                const getGrade = (sub: string) => sGrades.find(g => g.subject === sub)?.quarterGrade || '-'
+                
+                return (
+                  <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="text-slate-500">{idx + 1}</TableCell>
+                    <TableCell className="font-medium border-r">{student.name}</TableCell>
+                    <TableCell className="text-center">{getGrade('Filipino')}</TableCell>
+                    <TableCell className="text-center">{getGrade('English')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Mathematics')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Science')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Ap')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Epp/tle')}</TableCell>
+                    <TableCell className="text-center">{getGrade('Mapeh')}</TableCell>
+                    <TableCell className="text-center border-r">{getGrade('Esp')}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-900 bg-slate-50/50">{avg > 0 ? avg : '-'}</TableCell>
+                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#1ca560]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

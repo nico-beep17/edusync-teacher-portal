@@ -1,0 +1,70 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { GraduationCap, Lock, Mail } from "lucide-react"
+import { useRouter } from "next/navigation"
+
+export default function LoginPage() {
+  const router = useRouter()
+  
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Simulate authentication
+    router.push('/')
+  }
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-50 bg-gradient-to-br from-slate-100 to-slate-200">
+      
+      {/* Decorative Blur Background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-emerald-400/20 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div className="z-10 w-full max-w-md p-8 bg-white/70 backdrop-blur-2xl rounded-2xl border border-white shadow-2xl">
+        <div className="flex flex-col items-center justify-center text-center mb-8">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-[#1ca560] text-white shadow-lg mb-4">
+            <GraduationCap size={28} />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">EduSync</h1>
+          <p className="text-sm text-slate-500 mt-2 font-medium">Teacher Portal & School Management</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">DepEd Email</Label>
+            <Input 
+              id="email" 
+              placeholder="juan.delacruz@deped.gov.ph" 
+              type="email" 
+              className="h-11 bg-white/50 focus:bg-white transition-colors"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <a href="#" className="text-xs font-semibold text-[#1ca560] hover:underline">Forgot password?</a>
+            </div>
+            <Input 
+              id="password" 
+              type="password" 
+              placeholder="••••••••" 
+              className="h-11 bg-white/50 focus:bg-white transition-colors"
+            />
+          </div>
+          <Button type="button" className="w-full h-11 bg-[#1ca560] hover:bg-[#158045] text-white shadow-emerald-500/20 shadow-lg text-base font-semibold">
+            Sign In to Portal
+          </Button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t border-slate-200/50 flex flex-col items-center gap-3">
+          <p className="text-xs text-slate-500">Sign in using your assigned role</p>
+          <div className="flex w-full gap-2">
+            <Button variant="outline" className="flex-1 text-xs h-9 bg-white/50">Demo as Adviser</Button>
+            <Button variant="outline" className="flex-1 text-xs h-9 bg-white/50">Demo as Subject Tr.</Button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  )
+}
