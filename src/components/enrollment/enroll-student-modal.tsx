@@ -19,7 +19,7 @@ import { useTeacherStore } from "@/store/useStore"
 import { useRef } from "react"
 
 export function EnrollStudentModal() {
-  const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual')
+  const [activeTab, setActiveTab] = useState<'manual' | 'ai' | 'bulk'>('manual')
   const [open, setOpen] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [scanSuccess, setScanSuccess] = useState(false)
@@ -105,6 +105,35 @@ export function EnrollStudentModal() {
     }
   }
 
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const text = await file.text()
+    const rows = text.split('\n')
+    let addedCount = 0
+
+    rows.forEach(row => {
+        const cols = row.split(',')
+        if (cols.length >= 3) {
+            const lrn = cols[0].trim()
+            const name = cols[1].trim()
+            const sex = cols[2].trim().toUpperCase()
+            
+            if (lrn && name && (sex === 'M' || sex === 'F')) {
+                addStudent({
+                    lrn, name, sex: sex as 'M' | 'F', status: 'ENROLLED'
+                })
+                addedCount++
+            }
+        }
+    })
+    
+    alert(`Successfully bulk-enrolled ${addedCount} students into the local matrix!`)
+    setOpen(false)
+    setActiveTab('manual')
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
@@ -134,8 +163,8 @@ export function EnrollStudentModal() {
            </button>
         </div>
 
-        {activeTab === 'manual' ? (
-          <form onSubmit={handleSubmit} className="grid gap-4 py-4 mt-2">
+        {activeTab === 'manual' && (
+          <form className="grid gap-4 py-4 mt-2">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="lrn" className="text-right">LRN</Label>
               <Input id="lrn" value={form.lrn} onChange={e => setForm({...form, lrn: e.target.value})} placeholder="12-digit Learner Reference Number" className="col-span-3 bg-white" required />
@@ -161,9 +190,10 @@ export function EnrollStudentModal() {
               </Select>
             </div>
           </form>
-        ) : (
+        )}
+
+        {activeTab === 'ai' && (
           <div className="flex flex-col items-center justify-center p-8 mt-2 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 min-h-[250px] transition-all relative overflow-hidden">
-             
              {isScanning ? (
                 <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
                     <div className="h-16 w-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 relative">
@@ -200,12 +230,36 @@ export function EnrollStudentModal() {
           </div>
         )}
 
+        {/* Bulk CSV Upload Tab Content */}
+        {activeTab === 'bulk' && (
+          <div className="flex flex-col items-center justify-center p-8 mt-2 border-2 border-dashed border-amber-200 rounded-xl bg-amber-50/30 min-h-[250px] transition-all overflow-hidden fade-in duration-300">
+             <div className="h-16 w-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                 <UploadCloud size={28} />
+             </div>
+             <p className="font-semibold text-slate-800 text-center mb-2 text-lg">Mass CSV Onboarding</p>
+             <p className="text-sm text-slate-500 text-center max-w-[300px] mb-6">
+                 Bypass scanning limits. Upload a standard registrar list formatted exactly as:<br/>
+                 <kbd className="bg-white border rounded px-2 py-0.5 mt-2 inline-block font-mono text-amber-700 shadow-sm font-bold">LRN, LASTNAME FIRSTNAME, M</kbd>
+             </p>
+             <input type="file" accept=".csv" className="hidden" id="csv-upload" onChange={handleCSVUpload} />
+             <Button onClick={() => document.getElementById('csv-upload')?.click()} variant="outline" className="bg-amber-500 hover:bg-amber-600 text-white border-transparent shadow shadow-amber-500/20 font-bold active:scale-95">
+                <UploadCloud className="mr-2 h-4 w-4" /> Initialize CSV Matrix
+             </Button>
+          </div>
+        )}
+
         <DialogFooter className="pt-2 border-t mt-2">
-          {activeTab === 'manual' ? (
-            <Button onClick={handleSubmit} type="submit" className="w-full bg-[#1ca560] hover:bg-[#158045]">Complete Enrollment</Button>
-          ) : (
+          {activeTab === 'manual' && (
+            <Button onClick={handleSubmit} className="w-full bg-[#1ca560] hover:bg-[#158045]">Complete Enrollment</Button>
+          )}
+          {activeTab === 'ai' && (
              <Button type="button" disabled className="w-full bg-slate-200/60 text-slate-400">
                {isScanning ? 'Processing...' : scanSuccess ? 'Data Extracted!' : 'Scan before continuing'}
+             </Button>
+          )}
+          {activeTab === 'bulk' && (
+             <Button onClick={() => setOpen(false)} variant="outline" className="w-full text-slate-500 bg-white">
+               Cancel Setup
              </Button>
           )}
         </DialogFooter>
