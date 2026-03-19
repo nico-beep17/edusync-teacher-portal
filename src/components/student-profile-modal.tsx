@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTeacherStore, Student } from "@/store/useStore"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { QrCode } from "lucide-react"
+import { QrCode, Sparkles, Navigation } from "lucide-react"
+import { useState } from "react"
+import QRCode from "react-qr-code"
 
 interface StudentProfileModalProps {
   student: Student | null
@@ -11,6 +13,7 @@ interface StudentProfileModalProps {
 export function StudentProfileModal({ student, onClose }: StudentProfileModalProps) {
   const gradesMap = useTeacherStore(s => s.grades)
   const attendanceMap = useTeacherStore(s => s.attendance)
+  const [activeTab, setActiveTab] = useState<'overview' | 'badge'>('overview')
 
   if (!student) return null
 
@@ -49,52 +52,103 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-4 py-4">
-          <div className="flex flex-col p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Gen. Average</span>
-            <span className="text-2xl font-bold text-slate-900 mt-1">{generalAvg}</span>
-          </div>
-          <div className="flex flex-col p-4 bg-red-50 rounded-xl border border-red-100">
-            <span className="text-xs text-red-600 font-medium">Total Absences</span>
-            <span className="text-2xl font-bold text-red-700 mt-1">{absences}</span>
-          </div>
-          <div className="flex flex-col p-4 bg-amber-50 rounded-xl border border-amber-100">
-            <span className="text-xs text-amber-600 font-medium">Total Lates</span>
-            <span className="text-2xl font-bold text-amber-700 mt-1">{lates}</span>
-          </div>
+        <div className="flex items-center gap-4 py-2 border-b border-slate-100">
+           <button onClick={() => setActiveTab('overview')} className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-[#1ca560] text-[#1ca560]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Academic Overview</button>
+           <button onClick={() => setActiveTab('badge')} className={`text-sm font-semibold pb-2 border-b-2 flex items-center transition-colors ${activeTab === 'badge' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              <QrCode size={14} className="mr-1.5" /> ID Badge Generator
+           </button>
         </div>
 
-        <div className="mt-2">
-          <h4 className="font-semibold text-sm mb-3">Academic Performance</h4>
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead>Learning Area</TableHead>
-                  <TableHead className="text-center">Initial Grade</TableHead>
-                  <TableHead className="text-center font-bold">Quarter Grade</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {studentGrades.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-slate-500 py-6">No grades recorded.</TableCell>
-                  </TableRow>
-                ) : (
-                  studentGrades.map((g, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{g.subject}</TableCell>
-                      <TableCell className="text-center text-slate-500">-</TableCell>
-                      <TableCell className={`text-center font-bold ${g.quarterGrade >= 75 ? 'text-[#1ca560]' : 'text-red-500'}`}>
-                        {g.quarterGrade}
-                      </TableCell>
+        {activeTab === 'overview' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="grid grid-cols-3 gap-4 py-4">
+              <div className="flex flex-col p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-xs text-slate-500 font-medium">Gen. Average</span>
+                <span className="text-2xl font-bold text-slate-900 mt-1">{generalAvg}</span>
+              </div>
+              <div className="flex flex-col p-4 bg-red-50/50 rounded-xl border border-red-100">
+                <span className="text-xs text-red-600 font-medium">Total Absences</span>
+                <span className="text-2xl font-bold text-red-700 mt-1">{absences}</span>
+              </div>
+              <div className="flex flex-col p-4 bg-amber-50/50 rounded-xl border border-amber-100">
+                <span className="text-xs text-amber-600 font-medium">Total Lates</span>
+                <span className="text-2xl font-bold text-amber-700 mt-1">{lates}</span>
+              </div>
+            </div>
+
+            <div className="mt-2">
+              <h4 className="font-semibold text-sm mb-3">Academic Performance</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead>Learning Area</TableHead>
+                      <TableHead className="text-center">Initial Grade</TableHead>
+                      <TableHead className="text-center font-bold">Quarter Grade</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {studentGrades.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-slate-500 py-6">No grades recorded.</TableCell>
+                      </TableRow>
+                    ) : (
+                      studentGrades.map((g, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">{g.subject}</TableCell>
+                          <TableCell className="text-center text-slate-500">-</TableCell>
+                          <TableCell className={`text-center font-bold ${g.quarterGrade >= 75 ? 'text-[#1ca560]' : 'text-red-500'}`}>
+                            {g.quarterGrade}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
+             <div className="relative flex flex-col items-center w-[300px] h-[480px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden group">
+                {/* ID Header Graphic */}
+                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#1ca560] to-emerald-700 pointer-events-none">
+                   <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+                </div>
+                
+                {/* ID Content */}
+                <div className="z-10 flex flex-col items-center mt-6 text-center text-white drop-shadow-sm">
+                   <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 mb-2 shadow-lg">
+                      <Navigation className="text-white h-8 w-8" />
+                   </div>
+                   <h2 className="font-extrabold text-sm tracking-widest text-emerald-50">QUEZON NATL HIGH</h2>
+                   <p className="text-[10px] uppercase font-bold text-emerald-200 tracking-wider">DepEd Official • SY '25-'26</p>
+                </div>
+
+                {/* QR Focus */}
+                <div className="z-10 mt-10 bg-white p-4 rounded-xl shadow-lg border border-slate-100 transform transition-transform group-hover:scale-105 duration-300">
+                   <QRCode 
+                      value={student.lrn} 
+                      size={140}
+                      level="H"
+                      fgColor="#1e293b"
+                   />
+                </div>
+
+                <div className="mt-8 flex flex-col items-center">
+                   <h1 className="text-xl font-bold text-slate-900 tracking-tight text-center leading-tight px-4">{student.name}</h1>
+                   <div className="flex items-center gap-1.5 mt-2 bg-slate-100 rounded-full px-3 py-1">
+                      <Sparkles size={12} className="text-amber-500" />
+                      <span className="font-mono text-xs font-semibold tracking-widest text-[#1ca560]">{student.lrn}</span>
+                   </div>
+                   <p className="text-xs font-bold text-slate-400 mt-4 tracking-widest uppercase">Grade 8 ARIES</p>
+                </div>
+             </div>
+             <p className="text-xs text-slate-400 italic mt-6 bg-slate-50 px-4 py-2 rounded-md border border-slate-100">
+                Screenshot / Print this ID Badge heavily enabling QR Daily Attendance tracking.
+             </p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
