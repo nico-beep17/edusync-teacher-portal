@@ -1,16 +1,8 @@
 import type { NextConfig } from "next";
-import withPWA from "@ducanh2912/next-pwa";
-
-const pwa = withPWA({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-  skipWaiting: true
-});
 
 const nextConfig: NextConfig = {
-  eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true }
+  typescript: { ignoreBuildErrors: true },
+  turbopack: {},
 };
 
-export default pwa(nextConfig);
+export default nextConfig;

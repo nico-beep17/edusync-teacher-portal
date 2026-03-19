@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Topbar } from "@/components/layout/topbar";
+import { AppShell } from "@/components/layout/app-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EduSync | Teacher Portal",
-  description: "Modern DepEd Compliant School Management System",
+  title: "EduSync | DepEd Teacher Portal",
+  description: "DepEd-Compliant Offline-First Teacher Management System for Philippine Public Schools",
   applicationName: "EduSync",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Prevents unintended zooming on mobile forms
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -33,10 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased`}>
-        <Topbar />
-        <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

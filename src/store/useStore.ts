@@ -136,6 +136,10 @@ export const useTeacherStore = create<TeacherState>()(
       }),
 
       pushToCloud: async () => {
+         if (!supabase) {
+            alert("Cloud sync is unavailable — Supabase credentials are not configured.")
+            return
+         }
          const { students } = useTeacherStore.getState()
          for (const s of students) {
              const [last, first] = s.name.split(',')

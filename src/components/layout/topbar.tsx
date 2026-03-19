@@ -1,7 +1,10 @@
+"use client"
+
 import {
-  Bell, Search, Settings, BookOpen, LogOut, ChevronDown, Cloud, WifiOff
+  Bell, Search, Settings, LogOut, ChevronDown, Cloud, WifiOff
 } from "lucide-react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import {
   DropdownMenu,
@@ -11,14 +14,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+// Map pathname to readable page title
+const pageTitles: Record<string, string> = {
+  "/": "Advisory Dashboard",
+  "/attendance": "SF2 Daily Attendance",
+  "/composite": "Composite Grades",
+  "/sf5": "SF5 Promotion & Retention",
+  "/workload": "Teaching Workload",
+}
+
 export function Topbar() {
+  const pathname = usePathname()
   const [isOnline, setIsOnline] = useState(true)
 
   useEffect(() => {
-    // Check initial state
     setIsOnline(navigator.onLine)
-    
-    // Listeners for dynamic PWA state shifts
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
     window.addEventListener('online', handleOnline)
@@ -29,69 +39,73 @@ export function Topbar() {
     }
   }, [])
 
+  // Don't render topbar on login page
+  if (pathname === "/login") return null
+
+  // Resolve page title (handles dynamic routes like /ecr/[subject])
+  const pageTitle = pageTitles[pathname] || (pathname.startsWith("/ecr/") ? "E-Class Record" : "EduSync")
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/50 px-6 backdrop-blur-md">
-      <div className="flex items-center gap-8">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1ca560] text-white group-hover:bg-[#158045] transition-colors">
-            <BookOpen size={18} />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#1ca560] transition-colors">EduSync</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/" className="hover:text-[#1ca560] transition-colors">Advisory Board</Link>
-          <Link href="/attendance" className="hover:text-[#1ca560] transition-colors">SF2 Attendance</Link>
-          <Link href="/composite" className="hover:text-[#1ca560] transition-colors">Composite Grades</Link>
-          <Link href="/sf5" className="hover:text-[#1ca560] transition-colors">SF5</Link>
-          <div className="h-4 w-px bg-slate-300 mx-2"></div>
-          <Link href="/workload" className="hover:text-[#1ca560] transition-colors">Teacher Workload</Link>
-        </nav>
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 lg:px-6 backdrop-blur-md">
+      {/* Left: Page Title (with mobile offset for hamburger) */}
+      <div className="flex items-center gap-3 pl-12 lg:pl-0">
+        <h2 className="text-base font-bold text-slate-800 tracking-tight truncate">{pageTitle}</h2>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* PWA Sync Indicator */}
-        <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-colors ${isOnline ? 'bg-emerald-50 text-[#1ca560] border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+        <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-colors ${isOnline ? 'bg-emerald-50 text-[#1ca560] border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
            {isOnline ? (
-              <><Cloud size={14} className="animate-pulse" /> Cloud Connected</>
+              <><Cloud size={12} className="animate-pulse" /> Cloud Sync</>
            ) : (
-              <><WifiOff size={14} /> Operating Offline (PWA)</>
+              <><WifiOff size={12} /> Offline</>
            )}
         </div>
 
-        <div className="relative hidden w-[250px] lg:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        {/* Search */}
+        <div className="relative hidden w-[200px] xl:block">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search students, LRN, forms..."
-            className="h-9 w-full rounded-md border border-slate-200 bg-white/50 pl-9 pr-4 text-sm outline-none focus:border-[#1ca560] focus:ring-1 focus:ring-[#1ca560]"
+            placeholder="Search students..."
+            className="h-8 w-full rounded-md border border-slate-200 bg-slate-50/50 pl-9 pr-4 text-sm outline-none focus:border-[#1ca560] focus:ring-1 focus:ring-[#1ca560] transition-colors"
           />
         </div>
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
-          <Bell size={18} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500"></span>
-        </button>
-        <button className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
-          <Settings size={18} />
-        </button>
-        
-        <div className="border-l h-6 mx-1 border-slate-300 hidden sm:block"></div>
 
+        {/* Notifications */}
+        <button className="relative flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <Bell size={16} />
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-white bg-red-500"></span>
+        </button>
+
+        {/* Settings */}
+        <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <Settings size={16} />
+        </button>
+
+        <div className="border-l h-5 mx-0.5 border-slate-200 hidden sm:block"></div>
+
+        {/* Profile Dropdown */}
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <div className="ml-1 flex items-center gap-2 hover:bg-slate-50 p-1 pr-2 rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1ca560]">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-emerald-400 to-[#1ca560] shadow-inner border border-emerald-600"></div>
-              <div className="hidden flex-col items-start sm:flex text-sm text-left">
-                <span className="font-semibold text-slate-900 leading-none">C. Rubino</span>
-                <span className="text-[10px] uppercase font-bold text-[#1ca560] tracking-wider mt-0.5">Class Adviser</span>
+          <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-slate-50 p-1 pr-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#1ca560] cursor-pointer">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-emerald-400 to-[#1ca560] shadow-inner border border-emerald-600/30 shrink-0"></div>
+              <div className="hidden sm:flex flex-col items-start text-left">
+                <span className="text-xs font-semibold text-slate-800 leading-none">C. Rubino</span>
+                <span className="text-[9px] uppercase font-bold text-[#1ca560] tracking-wider mt-0.5">Teacher I</span>
               </div>
-              <ChevronDown size={14} className="text-slate-400 ml-1 hidden sm:block" />
-            </div>
+              <ChevronDown size={12} className="text-slate-400 hidden sm:block" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[200px] bg-white p-1">
+          <DropdownMenuContent align="end" className="w-[180px] bg-white p-1 shadow-lg border border-slate-200/60">
+            <DropdownMenuItem className="text-sm text-slate-600 cursor-pointer p-2 rounded-md">
+              <Settings className="mr-2 h-3.5 w-3.5" />
+              <span>Preferences</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <Link href="/login" className="w-full">
-               <DropdownMenuItem className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer font-medium p-2">
-                 <LogOut className="mr-2 h-4 w-4" />
-                 <span>Secure Log out</span>
+               <DropdownMenuItem className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer font-medium p-2 rounded-md">
+                 <LogOut className="mr-2 h-3.5 w-3.5" />
+                 <span>Log Out</span>
                </DropdownMenuItem>
             </Link>
           </DropdownMenuContent>
