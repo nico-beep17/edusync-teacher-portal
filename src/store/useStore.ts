@@ -42,13 +42,45 @@ export const useTeacherStore = create<TeacherState>()(
   persist(
     (set) => ({
       students: [
-        { lrn: "123456789012", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
-        { lrn: "123456789013", name: "BARRIENTOS, JOHN PAUL M.", sex: "M", status: "ENROLLED" },
-        { lrn: "123456789014", name: "BULAHAN, ROVIC L.", sex: "M", status: "ENROLLED" },
-        { lrn: "123456789015", name: "CLARO, REANZ P.", sex: "F", status: "ENROLLED" },
+        { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
+        { lrn: "101010101011", name: "BARRIENTOS, JOHN PAUL M.", sex: "M", status: "ENROLLED" },
+        { lrn: "101010101012", name: "BULAHAN, ROVIC L.", sex: "M", status: "ENROLLED" },
+        { lrn: "101010101013", name: "CIJAS, ROLIE JR A.", sex: "M", status: "ENROLLED" },
+        { lrn: "101010101014", name: "CLARO, REANZ P.", sex: "F", status: "ENROLLED" },
+        { lrn: "101010101015", name: "DELA CRUZ, SARAH G.", sex: "F", status: "ENROLLED" },
+        { lrn: "101010101016", name: "ESPINA, MICA B.", sex: "F", status: "ENROLLED" },
+        { lrn: "101010101017", name: "FAMOSO, LARA M.", sex: "F", status: "ENROLLED" },
       ],
-      grades: {},
-      attendance: {},
+      grades: {
+        "101010101010": [
+            { subject: "Filipino", ww1: 15, ww2: 12, pt1: 20, pt2: 18, qa: 45, quarterGrade: 86 },
+            { subject: "Mathematics", ww1: 10, ww2: 8, pt1: 15, pt2: 10, qa: 30, quarterGrade: 74 },
+            { subject: "Science", ww1: 12, ww2: 15, pt1: 18, pt2: 19, qa: 40, quarterGrade: 83 },
+            { subject: "English", ww1: 14, ww2: 14, pt1: 22, pt2: 21, qa: 42, quarterGrade: 88 },
+        ],
+        "101010101011": [
+            { subject: "Filipino", ww1: 20, ww2: 19, pt1: 25, pt2: 24, qa: 48, quarterGrade: 94 },
+            { subject: "Mathematics", ww1: 18, ww2: 17, pt1: 22, pt2: 23, qa: 46, quarterGrade: 91 },
+            { subject: "Science", ww1: 19, ww2: 18, pt1: 24, pt2: 23, qa: 47, quarterGrade: 93 },
+            { subject: "English", ww1: 17, ww2: 16, pt1: 21, pt2: 22, qa: 44, quarterGrade: 89 },
+        ],
+        "101010101015": [
+            { subject: "Filipino", ww1: 20, ww2: 20, pt1: 25, pt2: 25, qa: 50, quarterGrade: 98 },
+            { subject: "Mathematics", ww1: 20, ww2: 19, pt1: 24, pt2: 25, qa: 49, quarterGrade: 96 },
+            { subject: "Science", ww1: 19, ww2: 20, pt1: 25, pt2: 24, qa: 48, quarterGrade: 95 },
+            { subject: "English", ww1: 20, ww2: 20, pt1: 25, pt2: 25, qa: 49, quarterGrade: 97 },
+        ]
+      },
+      attendance: {
+         "101010101010": [
+            { date: new Date().toISOString().split('T')[0], status: 'P' },
+            { date: '2026-03-18', status: 'A' }
+         ],
+         "101010101015": [
+            { date: new Date().toISOString().split('T')[0], status: 'P' },
+            { date: '2026-03-18', status: 'P' }
+         ],
+      },
       
       addStudent: (student) => {
          // Fire and forget to Cloud
