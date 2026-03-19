@@ -51,17 +51,14 @@ export default function LoginPage() {
               className="h-11 bg-white/50 focus:bg-white transition-colors"
             />
           </div>
-          <Button type="button" className="w-full h-11 bg-[#1ca560] hover:bg-[#158045] text-white shadow-emerald-500/20 shadow-lg text-base font-semibold">
+          <Button type="submit" className="w-full h-11 bg-[#1ca560] hover:bg-[#158045] text-white shadow-emerald-500/20 shadow-lg text-base font-semibold">
             Sign In to Portal
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-200/50 flex flex-col items-center gap-3">
-          <p className="text-xs text-slate-500">Sign in using your assigned role</p>
-          <div className="flex w-full gap-2">
-            <Button variant="outline" className="flex-1 text-xs h-9 bg-white/50">Demo as Adviser</Button>
-            <Button variant="outline" className="flex-1 text-xs h-9 bg-white/50">Demo as Subject Tr.</Button>
-          </div>
+        <div className="mt-6 pt-6 border-t border-slate-200/50 flex flex-col items-center gap-2">
+          <p className="text-xs text-slate-400 font-medium">DepEd Authorized Gateway</p>
+          <p className="text-[10px] text-slate-400/80">Secured via Supabase Infrastructure</p>
         </div>
       </div>
 
