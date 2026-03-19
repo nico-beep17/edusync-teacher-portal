@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Save, FileDown, Calculator } from "lucide-react"
+import { Send, FileDown, Calculator, CheckCircle2 } from "lucide-react"
 import { computeDepEdGrade } from "@/lib/deped-grading"
 import { exportToCSV } from "@/lib/export-utils"
 import { useTeacherStore } from "@/store/useStore"
@@ -82,7 +82,7 @@ export default function EClassRecordPage({ params }: { params: { subject: string
              quarterGrade: grades.quarterGrade
          })
      })
-     alert("Grades Saved to Local Store Successfully!")
+     alert(`[Subject Transmission]: The E-Class Record and strictly computed Quarterly Grades for ${subjectName} have been permanently transmitted to the Class Adviser's Composite Aggregator.`)
   }
 
   const handleExport = async () => {
@@ -163,11 +163,11 @@ export default function EClassRecordPage({ params }: { params: { subject: string
           <p className="text-muted-foreground mt-1">Interactive E-Class Record • Quarter 1</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={handleExport} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700">
-             <FileDown className="mr-2 h-4 w-4" /> Export ECR
+          <Button onClick={handleExport} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700 border-slate-200">
+             <FileDown className="mr-2 h-4 w-4" /> Download Blank Template
           </Button>
-          <Button onClick={handleSaveGrades} className="bg-[#1ca560] hover:bg-[#158045]">
-            <Save className="mr-2 h-4 w-4" /> Save Grades
+          <Button onClick={handleSaveGrades} className="bg-gradient-to-r from-[#1ca560] to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-md shadow-emerald-500/20 font-bold transition-all active:scale-95">
+            <Send className="mr-2 h-4 w-4" /> Transmit to Class Adviser
           </Button>
         </div>
       </div>

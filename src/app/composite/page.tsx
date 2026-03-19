@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Calculator, Printer, FileDown } from "lucide-react"
+import { Calculator, Printer, FileDown, Inbox, CheckCircle2, Clock } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
 import { exportToCSV } from "@/lib/export-utils"
@@ -75,7 +75,7 @@ export default function CompositeGradesPage() {
           <p className="text-muted-foreground mt-1">Grade 8 - ARIES • Quarter 1</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700">
+          <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700 shadow-sm">
              <Printer className="mr-2 h-4 w-4" /> Print Composite
           </Button>
           <Button onClick={handleExport} className="bg-[#1ca560] hover:bg-[#158045]">
@@ -83,6 +83,45 @@ export default function CompositeGradesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Grade Submissions Inbox Widget */}
+      <Card className="bg-gradient-to-r from-indigo-50/50 to-blue-50/50 border border-indigo-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl transform translate-x-8 -translate-y-8"></div>
+        <CardContent className="p-4 sm:p-5">
+           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+               <div>
+                  <div className="flex items-center font-bold text-slate-800 text-lg mb-1">
+                      <Inbox className="w-5 h-5 mr-2 text-indigo-500" /> Subject Teacher Submissions
+                  </div>
+                  <p className="text-sm text-slate-500 max-w-xl">
+                      Tracking final E-Class Records transmitted remotely by your co-teachers. 
+                      Once a subject hits 100%, it automatically computes into the General Average.
+                  </p>
+               </div>
+               
+               <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
+                  {subjects.map(sub => {
+                     const submittedCount = students.filter(s => {
+                         const sGrades = gradesMap[s.lrn] || [];
+                         return sGrades.some(g => g.subject === sub);
+                     }).length;
+                     const totalCount = students.length;
+                     const isComplete = totalCount > 0 && submittedCount === totalCount;
+                     
+                     return (
+                        <div key={sub} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border ${isComplete ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 shadow-sm'}`}>
+                           {isComplete ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Clock className="w-3.5 h-3.5 text-amber-500" />}
+                           {sub}
+                           <span className={`ml-1 px-1.5 py-0.5 rounded-sm ${isComplete ? 'bg-emerald-100/50 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                             {submittedCount}/{totalCount}
+                           </span>
+                        </div>
+                     )
+                  })}
+               </div>
+           </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200/60 overflow-hidden">
         <CardHeader className="bg-white/50 border-b flex flex-row items-center justify-between pb-4">
