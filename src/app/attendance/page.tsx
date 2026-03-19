@@ -3,29 +3,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileDown, Printer, Save, CalendarIcon } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { QRScannerModal } from "@/components/attendance/qr-scanner-modal"
-
-// Mock Data
-// const students = [
-//   { lrn: "123456789012", name: "ANUBLING, REGIE C.", sex: "M" },
-//   { lrn: "123456789013", name: "BARRIENTOS, JOHN PAUL M.", sex: "M" },
-//   { lrn: "123456789014", name: "BULAHAN, ROVIC L.", sex: "M" },
-//   { lrn: "123456789015", name: "CLARO, REANZ P.", sex: "F" },
-// ]
-
-// Generate exactly 5 days for a mock week
-// const currentWeek = [
-//   { date: "Oct 6", day: "Mon" },
-//   { date: "Oct 7", day: "Tue" },
-//   { date: "Oct 8", day: "Wed" },
-//   { date: "Oct 9", day: "Thu" },
-//   { date: "Oct 10", day: "Fri" }
-// ]
 
 export default function AttendancePage() {
   const [mounted, setMounted] = useState(false)
@@ -74,17 +56,10 @@ export default function AttendancePage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <QRScannerModal />
-          <Select defaultValue="october">
-            <SelectTrigger className="w-[180px] bg-white">
-              <CalendarIcon className="mr-2 h-4 w-4 text-slate-500" />
-              <SelectValue placeholder="Select Month" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="september">September 2025</SelectItem>
-              <SelectItem value="october">October 2025</SelectItem>
-              <SelectItem value="november">November 2025</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-white border border-slate-200 text-sm font-medium text-slate-700">
+            <CalendarIcon className="h-4 w-4 text-slate-500" />
+            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </div>
           <Button 
             onClick={() => {
               const newAtt = { ...localAtt }

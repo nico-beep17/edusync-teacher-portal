@@ -45,7 +45,25 @@ export default function AdviserDashboard() {
   ]
   const COLORS = ['#3b82f6', '#ec4899']
 
-  // Compute SARDO / Intervention List
+  // Compute today's attendance dynamically
+  const todayStr = new Date().toISOString().split('T')[0]
+  const presentToday = masterList.filter(s => {
+    const records = attendanceMap[s.lrn] || []
+    return records.some(r => r.date === todayStr && r.status === 'P')
+  }).length
+  const absentToday = masterList.filter(s => {
+    const records = attendanceMap[s.lrn] || []
+    return records.some(r => r.date === todayStr && r.status === 'A')
+  }).length
+
+  // Compute composite grade completion
+  const subjectsWithCompleteData = subjects.filter(sub => {
+    return masterList.every(s => {
+      const gList = gradesMap[s.lrn] || []
+      return gList.some(g => g.subject.toLowerCase().includes(sub.toLowerCase()))
+    })
+  }).length
+
   const interventionList = masterList.map(s => {
     const gList = gradesMap[s.lrn] || [];
     const aList = attendanceMap[s.lrn] || [];
@@ -96,8 +114,8 @@ export default function AdviserDashboard() {
             <UserCheck className="h-4 w-4 text-[#1ca560]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1ca560]">32</div>
-            <p className="text-xs text-muted-foreground mt-1">2 Absent</p>
+            <div className="text-3xl font-bold text-[#1ca560]">{presentToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">{absentToday > 0 ? `${absentToday} Absent` : 'No absences recorded'}</p>
           </CardContent>
         </Card>
         
@@ -108,7 +126,7 @@ export default function AdviserDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">Q1</div>
-            <p className="text-xs text-muted-foreground mt-1">7/8 Subjects Submitted</p>
+            <p className="text-xs text-muted-foreground mt-1">{subjectsWithCompleteData}/8 Subjects Complete</p>
           </CardContent>
         </Card>
         
