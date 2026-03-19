@@ -52,14 +52,16 @@ export default function AttendancePage() {
 
   if (!mounted) return null
 
-  // Fixed Dates for UI display prototype (a standard Mon-Fri week)
-  const weekDates = [
-    { label: "01", dateId: "2025-10-01" },
-    { label: "02", dateId: "2025-10-02" },
-    { label: "03", dateId: "2025-10-03" },
-    { label: "04", dateId: "2025-10-04" },
-    { label: "05", dateId: "2025-10-05" },
-  ]
+  // Generates exactly the last 5 literal days ending on 'Today' for dynamic UX mapping
+  const todayObj = new Date();
+  const weekDates = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date()
+    d.setDate(todayObj.getDate() - (4 - i))
+    return {
+      label: String(d.getDate()).padStart(2, '0'),
+      dateId: d.toISOString().split('T')[0]
+    }
+  })
 
   return (
     <div className="flex flex-col gap-6">

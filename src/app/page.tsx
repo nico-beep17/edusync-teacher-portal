@@ -6,7 +6,7 @@ import { EnrollStudentModal } from "@/components/enrollment/enroll-student-modal
 import { StudentProfileModal } from "@/components/student-profile-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, UserCheck, Calculator, FileText, TrendingUp, PieChart as PieChartIcon, Cloud } from "lucide-react"
+import { Users, UserCheck, Calculator, FileText, TrendingUp, PieChart as PieChartIcon, Cloud, AlertTriangle } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Label as RechartsLabel } from 'recharts'
 
 export default function AdviserDashboard() {
@@ -14,6 +14,7 @@ export default function AdviserDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const masterList = useTeacherStore((state) => state.students)
   const gradesMap = useTeacherStore((state) => state.grades)
+  const attendanceMap = useTeacherStore((state) => state.attendance)
   const pushToCloud = useTeacherStore((state) => state.pushToCloud)
 
   // Avoid hydration mismatch for persisted store
@@ -43,6 +44,19 @@ export default function AdviserDashboard() {
     { name: 'Female', value: femaleCount }
   ]
   const COLORS = ['#3b82f6', '#ec4899']
+
+  // Compute SARDO / Intervention List
+  const interventionList = masterList.map(s => {
+    const gList = gradesMap[s.lrn] || [];
+    const aList = attendanceMap[s.lrn] || [];
+    const absences = aList.filter(a => a.status === 'A').length;
+    
+    let sum = 0, count = 0;
+    gList.forEach(g => { if(g.quarterGrade > 0){ sum+=g.quarterGrade; count++; }});
+    const avg = count > 0 ? Number((sum / count).toFixed(2)) : 0;
+    
+    return { ...s, average: avg, absences };
+  }).filter(s => (s.average > 0 && s.average < 75) || s.absences >= 2);
 
   return (
     <div className="flex flex-col gap-8">
@@ -176,6 +190,60 @@ export default function AdviserDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Early Intervention SARDO Alert */}
+      {interventionList.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-red-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-400/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10"></div>
+            <CardHeader className="flex flex-row items-center border-b border-red-100/50 pb-3">
+               <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 mr-3 shadow-inner">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+               </div>
+               <div>
+                  <CardTitle className="text-red-800 text-lg">SARDO Intervention Required</CardTitle>
+                  <CardDescription className="text-red-600/80">
+                     Automatic flagging for students dropping below 75 Avg or exceeding minimal absence threshold.
+                  </CardDescription>
+               </div>
+            </CardHeader>
+            <CardContent className="pt-4 p-0">
+               <Table>
+                 <TableHeader>
+                   <TableRow className="hover:bg-transparent border-red-100">
+                     <TableHead className="font-semibold text-red-800">Learner Name</TableHead>
+                     <TableHead className="font-semibold text-red-800 text-center">Gen. Average</TableHead>
+                     <TableHead className="font-semibold text-red-800 text-center">Absences</TableHead>
+                     <TableHead className="text-right font-semibold text-red-800">Action</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {interventionList.map(student => (
+                     <TableRow key={student.lrn} className="hover:bg-red-50/50 border-red-100/50 transition-colors">
+                        <TableCell className="font-medium text-slate-900">{student.name}</TableCell>
+                        <TableCell className="text-center font-mono">
+                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${student.average < 75 ? 'bg-red-200 text-red-900' : 'bg-emerald-100 text-emerald-800'}`}>
+                             {student.average > 0 ? student.average.toFixed(2) : '-'}
+                           </span>
+                        </TableCell>
+                        <TableCell className="text-center font-mono">
+                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${student.absences >= 2 ? 'bg-amber-200 text-amber-900' : 'bg-slate-100 text-slate-800'}`}>
+                             {student.absences} absent
+                           </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                           <button onClick={() => setSelectedStudent(student)} className="text-xs text-red-600 hover:text-red-800 font-bold underline underline-offset-2">
+                             Review Profile
+                           </button>
+                        </TableCell>
+                     </TableRow>
+                   ))}
+                 </TableBody>
+               </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Masterlist Section */}
       <Card className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200/60 overflow-hidden">

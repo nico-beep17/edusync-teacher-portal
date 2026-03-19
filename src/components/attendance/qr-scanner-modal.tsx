@@ -27,9 +27,8 @@ export function QRScannerModal() {
 
     const student = students.find(s => s.lrn === scanValue)
     if (student) {
-       // Get current date ID (mocked for prototype as '2025-10-01')
-       // In a real app we would use: new Date().toISOString().split('T')[0]
-       const today = "2025-10-01" 
+       // Log the exact moment of scan securely to local cache
+       const today = new Date().toISOString().split('T')[0] 
        updateAttendance(student.lrn, { date: today, status: 'P' })
        
        setLastScanned(student.name)

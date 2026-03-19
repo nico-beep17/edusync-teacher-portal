@@ -1,7 +1,8 @@
 import {
-  Bell, Search, Settings, BookOpen, LogOut, ChevronDown
+  Bell, Search, Settings, BookOpen, LogOut, ChevronDown, Cloud, WifiOff
 } from "lucide-react"
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function Topbar() {
+  const [isOnline, setIsOnline] = useState(true)
+
+  useEffect(() => {
+    // Check initial state
+    setIsOnline(navigator.onLine)
+    
+    // Listeners for dynamic PWA state shifts
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+       window.removeEventListener('online', handleOnline)
+       window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/50 px-6 backdrop-blur-md">
       <div className="flex items-center gap-8">
@@ -31,7 +49,16 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative hidden w-[300px] sm:block">
+        {/* PWA Sync Indicator */}
+        <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-colors ${isOnline ? 'bg-emerald-50 text-[#1ca560] border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+           {isOnline ? (
+              <><Cloud size={14} className="animate-pulse" /> Cloud Connected</>
+           ) : (
+              <><WifiOff size={14} /> Operating Offline (PWA)</>
+           )}
+        </div>
+
+        <div className="relative hidden w-[250px] lg:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
