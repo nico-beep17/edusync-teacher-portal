@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -11,9 +11,10 @@ import { exportToCSV } from "@/lib/export-utils"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect } from "react"
 
-export default function EClassRecordPage({ params }: { params: { subject: string } }) {
+export default function EClassRecordPage({ params }: { params: Promise<{ subject: string }> }) {
+  const { subject } = use(params)
   const [mounted, setMounted] = useState(false)
-  const subjectName = params.subject.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  const subjectName = subject.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
   // Standard DepEd Weights for core subjects (Languages, Math, Science)
   const weights = { ww: 0.30, pt: 0.50, qa: 0.20 }
