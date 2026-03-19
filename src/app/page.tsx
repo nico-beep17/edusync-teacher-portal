@@ -33,7 +33,7 @@ export default function AdviserDashboard() {
   const chartData = subjects.map(sub => {
     let sum = 0; let count = 0;
     masterList.forEach(s => {
-      const g = gradesMap[s.lrn]?.find(x => x.subject === sub)
+      const g = gradesMap[s.lrn]?.find(x => x.subject.toLowerCase().includes(sub.toLowerCase()))
       if (g && g.quarterGrade > 0) { sum += g.quarterGrade; count++; }
     })
     return { subject: sub.substring(0, 4).toUpperCase(), average: count > 0 ? Number((sum/count).toFixed(2)) : 0 }

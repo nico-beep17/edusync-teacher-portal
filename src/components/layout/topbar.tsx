@@ -43,7 +43,7 @@ export function Topbar() {
   if (pathname === "/login") return null
 
   // Resolve page title (handles dynamic routes like /ecr/[subject])
-  const pageTitle = pageTitles[pathname] || (pathname.startsWith("/ecr/") ? "E-Class Record" : "EduSync")
+  const pageTitle = pageTitles[pathname] || (pathname.startsWith("/ecr/") ? "E-Class Record" : "DepAid")
 
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 lg:px-6 backdrop-blur-md">

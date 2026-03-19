@@ -13,7 +13,7 @@ const computeAverage = (grades: any[], requiredSubjects: string[]) => {
   let sum = 0
   let count = 0
   requiredSubjects.forEach(sub => {
-    const gradeEntry = grades.find(g => g.subject === sub)
+    const gradeEntry = grades.find(g => g.subject.toLowerCase().includes(sub.toLowerCase()))
     if (gradeEntry) { sum += gradeEntry.quarterGrade; count++ }
   })
   if (count === 0) return "0"

@@ -79,12 +79,10 @@ export function Sidebar() {
     <div className="flex flex-col h-full">
       {/* Logo Header */}
       <div className={`flex items-center h-16 px-4 border-b border-slate-200/60 shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-[#1ca560] text-white shadow-md shadow-emerald-500/20">
-          <GraduationCap size={20} />
-        </div>
+        <img src="/depaid-logo.png" alt="DepAid" className="h-9 w-9 rounded-xl shadow-md shadow-emerald-500/20 shrink-0 object-cover" />
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
-            <span className="text-lg font-bold tracking-tight text-slate-900 leading-tight">EduSync</span>
+            <span className="text-lg font-bold tracking-tight text-slate-900 leading-tight">DepAid</span>
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Teacher Portal</span>
           </div>
         )}

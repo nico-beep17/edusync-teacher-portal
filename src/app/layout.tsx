@@ -6,14 +6,14 @@ import { AppShell } from "@/components/layout/app-shell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EduSync | DepEd Teacher Portal",
+  title: "DepAid | DepEd Teacher Portal",
   description: "DepEd-Compliant Offline-First Teacher Management System for Philippine Public Schools",
-  applicationName: "EduSync",
+  applicationName: "DepAid",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "EduSync",
+    title: "DepAid",
   },
 };
 
