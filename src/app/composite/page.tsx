@@ -15,7 +15,7 @@ const computeAverage = (grades: any[], requiredSubjects: string[]) => {
   let count = 0;
   
   requiredSubjects.forEach(sub => {
-    const gradeEntry = grades.find(g => g.subject === sub)
+    const gradeEntry = grades.find(g => g.subject.toLowerCase().includes(sub.toLowerCase()))
     if (gradeEntry) {
        sum += gradeEntry.quarterGrade;
        count++;
@@ -103,7 +103,7 @@ export default function CompositeGradesPage() {
                   {subjects.map(sub => {
                      const submittedCount = students.filter(s => {
                          const sGrades = gradesMap[s.lrn] || [];
-                         return sGrades.some(g => g.subject === sub);
+                         return sGrades.some(g => g.subject.toLowerCase().includes(sub.toLowerCase()));
                      }).length;
                      const totalCount = students.length;
                      const isComplete = totalCount > 0 && submittedCount === totalCount;
@@ -163,7 +163,7 @@ export default function CompositeGradesPage() {
                 const avg = parseFloat(computeAverage(sGrades, subjects))
                 const remarks = avg >= 75 ? "Passed" : (avg === 0 ? "Pending" : "Failed")
                 
-                const getGrade = (sub: string) => sGrades.find(g => g.subject === sub)?.quarterGrade || '-'
+                const getGrade = (sub: string) => sGrades.find(g => g.subject.toLowerCase().includes(sub.toLowerCase()))?.quarterGrade || '-'
                 
                 return (
                   <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
@@ -192,7 +192,7 @@ export default function CompositeGradesPage() {
                 const avg = parseFloat(computeAverage(sGrades, subjects))
                 const remarks = avg >= 75 ? "Passed" : (avg === 0 ? "Pending" : "Failed")
                 
-                const getGrade = (sub: string) => sGrades.find(g => g.subject === sub)?.quarterGrade || '-'
+                const getGrade = (sub: string) => sGrades.find(g => g.subject.toLowerCase().includes(sub.toLowerCase()))?.quarterGrade || '-'
                 
                 return (
                   <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
