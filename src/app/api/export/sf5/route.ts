@@ -38,8 +38,8 @@ export async function POST(req: Request) {
     males.forEach((student: any, idx: number) => {
         sheet.getCell(`A${currentRow}`).value = student.lrn;
         sheet.getCell(`B${currentRow}`).value = student.name;
-        sheet.getCell(`F${currentRow}`).value = student.average; 
-        sheet.getCell(`G${currentRow}`).value = student.status === 'PROMOTED' || student.average >= 75 ? 'PROMOTED' : 'RETAINED'; 
+        sheet.getCell(`F${currentRow}`).value = student.average > 0 ? student.average : ""; 
+        sheet.getCell(`G${currentRow}`).value = student.average > 0 ? (student.average >= 75 ? 'PROMOTED' : 'RETAINED') : ""; 
         currentRow++;
     });
 
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
     females.forEach((student: any, idx: number) => {
         sheet.getCell(`A${currentRow}`).value = student.lrn;
         sheet.getCell(`B${currentRow}`).value = student.name;
-        sheet.getCell(`F${currentRow}`).value = student.average; 
-        sheet.getCell(`G${currentRow}`).value = student.status === 'PROMOTED' || student.average >= 75 ? 'PROMOTED' : 'RETAINED'; 
+        sheet.getCell(`F${currentRow}`).value = student.average > 0 ? student.average : ""; 
+        sheet.getCell(`G${currentRow}`).value = student.average > 0 ? (student.average >= 75 ? 'PROMOTED' : 'RETAINED') : ""; 
         currentRow++;
     });
 

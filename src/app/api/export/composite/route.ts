@@ -38,13 +38,7 @@ export async function POST(req: Request) {
     const males = students.filter((s: any) => s.sex === 'M');
     males.forEach((student: any) => {
         sheet.getCell(`B${currentRow}`).value = student.name;
-        // In composite, usually it's hardcoded per subject. 
-        // We will just populate the final average in the 'FINAL GRADE' column if we know it.
-        // For standard DepEd composite matrices, we populate the final Quarter Grade in specific columns.
-        // Let's populate the general average into column O (Index 15) and P (Index 16) or similar.
-        // Since we don't have all subject grades natively, we just inject the computed average
-        sheet.getCell(`O${currentRow}`).value = student.average || 85; 
-        
+        sheet.getCell(`O${currentRow}`).value = student.average > 0 ? student.average : ""; 
         currentRow++;
     });
 
@@ -60,7 +54,7 @@ export async function POST(req: Request) {
     const females = students.filter((s: any) => s.sex === 'F');
     females.forEach((student: any) => {
         sheet.getCell(`B${currentRow}`).value = student.name;
-        sheet.getCell(`O${currentRow}`).value = student.average || 85; 
+        sheet.getCell(`O${currentRow}`).value = student.average > 0 ? student.average : ""; 
         currentRow++;
     });
 

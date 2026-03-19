@@ -28,26 +28,29 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Could not find Quarter 1 Worksheet in template.' }, { status: 500 });
     }
 
-    // DepEd Template Writing Engine
-    // We override specific cells safely to preserve the robust native Excel formulas.
-    // Assuming Male starts around row 11 in standard CAMIGAO templates.
-    let currentRow = 11;
+    // Dynamic Row Finder to stop MALE header overwrites and off-by-1 shifts
+    let maleRow = 12;
+    for(let r = 5; r < 20; r++) {
+        const val = String(sheet.getCell(`B${r}`).value).toUpperCase();
+        if (val.trim() === "MALE" || val.includes("MALE")) {
+            maleRow = r + 1;
+            break;
+        }
+    }
+    
+    let currentRow = maleRow;
     
     // Inject Male
     const males = students.filter((s: any) => s.sex === 'M');
     males.forEach((student: any) => {
-        sheet.getCell(`B${currentRow}`).value = student.name; // Legal Name
+        sheet.getCell(`B${currentRow}`).value = student.name; 
         
-        // In the exact CAMIGAO template, columns for WW1, WW2 etc. are spread out.
-        // Assuming C, D for WW1, WW2 and P, Q for PT1, PT2, and AA for QA based on typical matrix mappings.
-        // If these are wrong for their exact file, they just change the column letters here.
-        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || 0; 
-        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || 0; 
-        
-        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || 0; 
-        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || 0; 
-        
-        sheet.getCell(`AH${currentRow}`).value = student.scores.qa || 0; 
+        // Blank cells instead of 0s to preserve pristine spreadsheet look
+        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || ""; 
+        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || ""; 
+        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || ""; 
+        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || ""; 
+        sheet.getCell(`AH${currentRow}`).value = student.scores.qa || ""; 
 
         currentRow++;
     });
@@ -67,13 +70,11 @@ export async function POST(req: Request) {
     females.forEach((student: any) => {
         sheet.getCell(`B${currentRow}`).value = student.name;
         
-        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || 0; 
-        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || 0; 
-        
-        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || 0; 
-        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || 0; 
-        
-        sheet.getCell(`AH${currentRow}`).value = student.scores.qa || 0; 
+        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || ""; 
+        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || ""; 
+        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || ""; 
+        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || ""; 
+        sheet.getCell(`AH${currentRow}`).value = student.scores.qa || ""; 
         
         currentRow++;
     });
