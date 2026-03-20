@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import {
   LayoutDashboard, ClipboardCheck, BarChart3,
-  Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X, Book
+  Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X, Book, Trophy
 } from "lucide-react"
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/composite", label: "Composite Grades", icon: BarChart3, description: "Collect & aggregate" },
   { href: "/sf3", label: "Books Issued (SF3)", icon: Book, description: "Book inventory" },
   { href: "/sf5", label: "Promotion (SF5)", icon: Award, description: "Promotion & retention" },
+  { href: "/honors", label: "Honor Roll", icon: Trophy, description: "Rankings & certificates" },
   { label: "SUBJECT TEACHING", type: "header" as const },
   { href: "/workload", label: "My Workload", icon: BookOpen, description: "ECR & grading sheets" },
   { label: "SYSTEM", type: "header" as const },

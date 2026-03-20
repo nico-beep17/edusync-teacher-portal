@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
   "/composite": "Composite Grades",
   "/sf3": "SF3 Book Issuance",
   "/sf5": "SF5 Promotion & Retention",
+  "/honors": "Honor Roll & Certificates",
   "/workload": "Teaching Workload",
   "/settings": "Settings",
 }
