@@ -53,6 +53,7 @@ interface TeacherState {
 
   // Actions
   addStudent: (student: Student) => void
+  editStudent: (oldLrn: string, newData: Student) => void
   removeStudent: (lrn: string) => void
   updateGrade: (lrn: string, gradeData: GradeEntry) => void
   updateAttendance: (lrn: string, record: AttendanceEntry) => void
@@ -217,6 +218,34 @@ export const useTeacherStore = create<TeacherState>()(
             return { students: [...state.students, student] }
          })
       },
+
+      editStudent: (oldLrn, newData) => set((state) => {
+          // If LRN didn't change, just update the student inline
+          if (oldLrn === newData.lrn) {
+             return {
+                students: state.students.map(s => s.lrn === oldLrn ? newData : s)
+             }
+          }
+
+          // If LRN changed, we must update the student AND migrate all keyed data
+          const newStudents = state.students.map(s => s.lrn === oldLrn ? newData : s)
+          
+          const newGrades = { ...state.grades }
+          if (newGrades[oldLrn]) { newGrades[newData.lrn] = newGrades[oldLrn]; delete newGrades[oldLrn] }
+          
+          const newAttendance = { ...state.attendance }
+          if (newAttendance[oldLrn]) { newAttendance[newData.lrn] = newAttendance[oldLrn]; delete newAttendance[oldLrn] }
+          
+          const newBooks = { ...state.books }
+          if (newBooks[oldLrn]) { newBooks[newData.lrn] = newBooks[oldLrn]; delete newBooks[oldLrn] }
+
+          return {
+             students: newStudents,
+             grades: newGrades,
+             attendance: newAttendance,
+             books: newBooks
+          }
+      }),
 
       removeStudent: (lrn) => set((state) => ({
         students: state.students.filter(s => s.lrn !== lrn)

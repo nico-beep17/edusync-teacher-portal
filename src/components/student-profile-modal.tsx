@@ -1,9 +1,13 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTeacherStore, Student } from "@/store/useStore"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { QrCode, Sparkles } from "lucide-react"
-import { useState } from "react"
+import { QrCode, Sparkles, Pencil } from "lucide-react"
+import { useState, useEffect } from "react"
 import QRCode from "react-qr-code"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 
 interface StudentProfileModalProps {
   student: Student | null
@@ -13,9 +17,37 @@ interface StudentProfileModalProps {
 export function StudentProfileModal({ student, onClose }: StudentProfileModalProps) {
   const gradesMap = useTeacherStore(s => s.grades)
   const attendanceMap = useTeacherStore(s => s.attendance)
-  const [activeTab, setActiveTab] = useState<'overview' | 'badge'>('overview')
+  const editStudent = useTeacherStore(s => s.editStudent)
+  const [activeTab, setActiveTab] = useState<'overview' | 'badge' | 'edit'>('overview')
+
+  const [editForm, setEditForm] = useState({
+      lrn: "",
+      name: "",
+      sex: "M"
+  })
+
+  // Sync form when student selected
+  useEffect(() => {
+    if (student) {
+      setEditForm({ lrn: student.lrn, name: student.name, sex: student.sex })
+      setActiveTab('overview')
+    }
+  }, [student])
 
   if (!student) return null
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!student) return
+      editStudent(student.lrn, {
+          lrn: editForm.lrn,
+          name: editForm.name,
+          sex: editForm.sex as 'M' | 'F',
+          status: student.status
+      })
+      alert("Student Profile Updated Successfully")
+      setActiveTab('overview')
+  }
 
   const studentGrades = gradesMap[student.lrn] || []
   const studentAtt = attendanceMap[student.lrn] || []
@@ -52,13 +84,17 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
           </div>
         </DialogHeader>
 
-        <div className="flex items-center gap-4 py-2 border-b border-slate-100">
+        <div className="flex items-center gap-4 py-2 border-b border-slate-100 px-6">
            <button onClick={() => setActiveTab('overview')} className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-[#003876] text-[#003876]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Academic Overview</button>
            <button onClick={() => setActiveTab('badge')} className={`text-sm font-semibold pb-2 border-b-2 flex items-center transition-colors ${activeTab === 'badge' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-              <QrCode size={14} className="mr-1.5" /> ID Badge Generator
+              <QrCode size={14} className="mr-1.5" /> ID Badge
+           </button>
+           <button onClick={() => setActiveTab('edit')} className={`text-sm font-semibold pb-2 border-b-2 flex items-center transition-colors ${activeTab === 'edit' ? 'border-amber-600 text-amber-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              <Pencil size={14} className="mr-1.5" /> Edit Profile
            </button>
         </div>
 
+        <div className="px-6 pb-6 pt-2">
         {activeTab === 'overview' ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-3 gap-4 py-4">
@@ -108,7 +144,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'badge' ? (
           <div className="flex flex-col items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
              <div className="relative flex flex-col items-center w-[300px] h-[480px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden group">
                 {/* ID Header Graphic */}
@@ -148,7 +184,40 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
                 Screenshot / Print this ID Badge heavily enabling QR Daily Attendance tracking.
              </p>
           </div>
-        )}
+        ) : activeTab === 'edit' ? (
+          <form onSubmit={handleSaveEdit} className="grid gap-4 py-4 animate-in fade-in zoom-in-95 duration-300">
+             <div className="bg-amber-50 rounded-lg p-3 text-sm text-amber-800 border border-amber-200 mb-2 shadow-sm">
+                 <strong>Safe Edit Mode:</strong> Changing the LRN here will safely migrate all underlying grades and attendance to the newly corrected number without data loss.
+             </div>
+             
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="edit-lrn" className="text-right font-medium text-slate-700">Learner Ref (LRN)</Label>
+               <Input id="edit-lrn" value={editForm.lrn} onChange={e => setEditForm({...editForm, lrn: e.target.value})} className="col-span-3 bg-white" required />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="edit-name" className="text-right font-medium text-slate-700">Legal Name</Label>
+               <Input id="edit-name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value.toUpperCase()})} placeholder="DELA CRUZ, JUAN M. JR." className="col-span-3 bg-white" required />
+             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="edit-sex" className="text-right font-medium text-slate-700">Sex</Label>
+               <Select value={editForm.sex} onValueChange={(val) => setEditForm({...editForm, sex: val || 'M'})}>
+                 <SelectTrigger className="w-full col-span-3 bg-white">
+                   <SelectValue placeholder="Select sex" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="M">Male</SelectItem>
+                   <SelectItem value="F">Female</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             
+             <div className="flex justify-end gap-3 mt-6 border-t border-slate-100 pt-4">
+                 <Button type="button" variant="outline" onClick={() => setActiveTab('overview')} className="h-10 px-5">Cancel</Button>
+                 <Button type="submit" className="h-10 px-6 bg-[#003876] hover:bg-blue-800 text-white shadow-md">Save Changes</Button>
+             </div>
+          </form>
+        ) : null}
+        </div>
       </DialogContent>
     </Dialog>
   )
