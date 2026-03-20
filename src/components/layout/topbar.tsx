@@ -4,6 +4,7 @@ import { Bell, Search, Settings, LogOut, ChevronDown, Cloud, WifiOff } from "luc
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { useTeacherStore } from "@/store/useStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -42,6 +43,14 @@ export function Topbar() {
   const students = useTeacherStore(s => s.students)
   const gradesMap = useTeacherStore(s => s.grades)
   const attendanceMap = useTeacherStore(s => s.attendance)
+  const user = useTeacherStore(s => s.user)
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
+  }
 
   const searchResults = searchQuery.trim().length >= 2
     ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.lrn.includes(searchQuery)).slice(0, 5)
@@ -259,7 +268,7 @@ export function Topbar() {
             }}
           >
             <div
-              className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black"
+              className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black overflow-hidden"
               style={{
                 background: "linear-gradient(145deg, #E30A24, #003876, #178848)",
                 border: "2px solid #8A0615",
@@ -267,13 +276,19 @@ export function Topbar() {
                 color: "#FFFFFF"
               }}
             >
-              R
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className="text-white">{user?.email?.charAt(0).toUpperCase() || 'T'}</span>
+              )}
             </div>
-            <div className="hidden sm:flex flex-col items-start text-left">
-              <span className="text-[11px] font-bold leading-none" style={{ color: "#111A24" }}>C. Rubino</span>
-              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#003876" }}>Teacher I</span>
+            <div className="hidden sm:flex flex-col items-start text-left max-w-[120px]">
+              <span className="text-[11px] font-bold leading-none truncate w-full" style={{ color: "#111A24" }}>
+                 {user?.user_metadata?.full_name || user?.email || 'Teacher I'}
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#003876" }}>Teacher Portral</span>
             </div>
-            <ChevronDown size={11} className="hidden sm:block" style={{ color: "#8898AC" }} />
+            <ChevronDown size={11} className="hidden sm:block ml-1" style={{ color: "#8898AC" }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
@@ -289,12 +304,10 @@ export function Topbar() {
               <span>Preferences</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator style={{ background: "#DDE4EE" }} />
-            <Link href="/login" className="w-full">
-              <DropdownMenuItem className="cursor-pointer p-2 rounded-md text-xs" style={{ color: "#C03030" }}>
-                <LogOut className="mr-2 h-3.5 w-3.5" />
-                <span>Log Out</span>
-              </DropdownMenuItem>
-            </Link>
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer p-2 rounded-md text-xs w-full" style={{ color: "#C03030" }}>
+              <LogOut className="mr-2 h-3.5 w-3.5" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

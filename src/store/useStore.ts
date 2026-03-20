@@ -50,6 +50,7 @@ interface TeacherState {
   books: Record<string, BookEntry[]>
   workload: WorkloadEntry[]
   teacherPin: string
+  user: any | null
 
   // Actions
   addStudent: (student: Student) => void
@@ -64,11 +65,14 @@ interface TeacherState {
   removeWorkload: (id: string) => void
   setTeacherPin: (pin: string) => void
   pushToCloud: () => Promise<void>
+  setUser: (user: any) => void
 }
 
 export const useTeacherStore = create<TeacherState>()(
   persist(
     (set) => ({
+      user: null,
+      setUser: (u) => set({ user: u }),
       teacherPin: '1234',
       books: {},
       students: [
