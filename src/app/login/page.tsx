@@ -90,7 +90,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></h1>
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="skeu-led-green" style={{ width: 6, height: 6 }} />
-                <span className="skeu-label" style={{ fontSize: "0.6rem", letterSpacing: "0.18em" }}>SUPPORT • FOCUS • INSPIRE</span>
+                <span className="skeu-label" style={{ fontSize: "0.6rem", letterSpacing: "0.18em" }}>SUPPORT • FOCUS • EMPOWER</span>
               </div>
             </div>
 
