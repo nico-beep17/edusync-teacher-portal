@@ -53,7 +53,7 @@ export function Sidebar() {
             border: "1px solid #D4DCE6"
           }}
         >
-          <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain p-0.5" />
+          <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
         </div>
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
