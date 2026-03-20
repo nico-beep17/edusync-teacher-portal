@@ -64,15 +64,7 @@ export default function SF5Page() {
               body: JSON.stringify({
                 form: 'sf5',
                 students: exportStudents,
-                schoolInfo: {
-                  region: 'XI',
-                  division: 'Panabo City',
-                  schoolId: '316405',
-                  schoolYear: '2025 - 2026',
-                  schoolName: 'QUEZON NATIONAL HIGH SCHOOL',
-                  gradeLevel: 'Grade 8',
-                  section: 'ARIES'
-                }
+                schoolInfo: useTeacherStore.getState().schoolInfo
               })
           });
           if (!res.ok) {
@@ -107,15 +99,7 @@ export default function SF5Page() {
               body: JSON.stringify({
                 form: 'sf6',
                 students: exportStudents,
-                schoolInfo: {
-                  region: 'XI',
-                  division: 'Panabo City',
-                  schoolId: '316405',
-                  schoolYear: '2025 - 2026',
-                  schoolName: 'QUEZON NATIONAL HIGH SCHOOL',
-                  gradeLevel: 'Grade 8',
-                  section: 'ARIES'
-                }
+                schoolInfo: useTeacherStore.getState().schoolInfo
               })
           });
           if (!res.ok) {

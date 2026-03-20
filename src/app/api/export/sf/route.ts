@@ -999,7 +999,7 @@ export async function POST(req: Request) {
       filename = `SF6_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Report.xlsx`
     } else if (form === 'composite') {
       wb = await buildComposite(students)
-      filename = `Composite_Grades_Export.xlsx`
+      filename = `Composite_Grades_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}.xlsx`
     } else {
       return Response.json({ error: 'Unknown form type. Use sf1 or sf2.' }, { status: 400 })
     }

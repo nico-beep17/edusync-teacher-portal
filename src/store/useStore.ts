@@ -51,6 +51,19 @@ interface TeacherState {
   workload: WorkloadEntry[]
   teacherPin: string
   user: any | null
+  schoolInfo: {
+    schoolName: string
+    schoolId: string
+    district: string
+    division: string
+    region: string
+    gradeLevel: string
+    section: string
+    schoolYear: string
+    quarter: string
+    adviserName: string
+    schoolHeadName: string
+  }
 
   // Actions
   addStudent: (student: Student) => void
@@ -66,6 +79,7 @@ interface TeacherState {
   setTeacherPin: (pin: string) => void
   pushToCloud: () => Promise<void>
   setUser: (user: any) => void
+  setSchoolInfo: (info: any) => void
 }
 
 export const useTeacherStore = create<TeacherState>()(
@@ -74,6 +88,20 @@ export const useTeacherStore = create<TeacherState>()(
       user: null,
       setUser: (u) => set({ user: u }),
       teacherPin: '1234',
+      schoolInfo: {
+        schoolName: "QUEZON NATIONAL HIGH SCHOOL",
+        schoolId: "316405",
+        district: "Panabo City",
+        division: "Panabo City",
+        region: "XI",
+        gradeLevel: "8",
+        section: "ARIES",
+        schoolYear: "2025-2026",
+        quarter: "1",
+        adviserName: "Teacher's Name",
+        schoolHeadName: "MYRNA EVANGELISTA PURIFICACION"
+      },
+      setSchoolInfo: (info: any) => set({ schoolInfo: info }),
       books: {},
       students: [
         { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },

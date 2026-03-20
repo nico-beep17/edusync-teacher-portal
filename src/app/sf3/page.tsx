@@ -12,6 +12,7 @@ export default function SF3Page() {
   const [mounted, setMounted] = useState(false)
   const students = useTeacherStore(s => s.students)
   const books = useTeacherStore(s => s.books)
+  const schoolInfo = useTeacherStore(s => s.schoolInfo)
   const issueBook = useTeacherStore(s => s.issueBook)
   const returnBook = useTeacherStore(s => s.returnBook)
   
@@ -37,7 +38,7 @@ export default function SF3Page() {
           const res = await fetch('/api/export/sf', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ form: 'sf3', students, books })
+              body: JSON.stringify({ form: 'sf3', students, books, schoolInfo })
           });
           if (!res.ok) throw new Error("SF3 Export failed");
           const blob = await res.blob();

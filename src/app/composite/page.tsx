@@ -52,7 +52,7 @@ export default function CompositeGradesPage() {
           const res = await fetch('/api/export/sf', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ form: 'composite', students: exportStudents })
+              body: JSON.stringify({ form: 'composite', students: exportStudents, schoolInfo: useTeacherStore.getState().schoolInfo })
           });
           if (!res.ok) throw new Error("Template mapping failed. Ensure 'Composite G8 ARIES.xlsx' is in public/templates/");
           const blob = await res.blob();

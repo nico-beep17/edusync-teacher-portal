@@ -35,9 +35,12 @@ const DEFAULT_SUBJECTS: Subject[] = [
 
 export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
+  const globalSchoolInfo = useTeacherStore((s) => s.schoolInfo)
+  const setGlobalSchoolInfo = useTeacherStore((s) => s.setSchoolInfo)
+  
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [saved, setSaved] = useState(false)
-  const [schoolInfo, setSchoolInfo] = useState({
+  const [schoolInfo, setSchoolInfo] = useState(globalSchoolInfo || {
     schoolName: "QUEZON NATIONAL HIGH SCHOOL",
     schoolId: "316405",
     district: "Panabo City",
@@ -47,7 +50,8 @@ export default function SettingsPage() {
     section: "ARIES",
     schoolYear: "2025-2026",
     quarter: "1",
-    adviserName: "CAMIGAO, RUBINO C."
+    adviserName: "Teacher's Name",
+    schoolHeadName: "MYRNA EVANGELISTA PURIFICACION"
   })
 
   // PIN Management
@@ -61,11 +65,12 @@ export default function SettingsPage() {
   useEffect(() => {
     // Load from localStorage or use defaults
     const savedSubjects = localStorage.getItem('depaid-subjects')
-    const savedSchool = localStorage.getItem('depaid-school-info')
     setSubjects(savedSubjects ? JSON.parse(savedSubjects) : DEFAULT_SUBJECTS)
-    if (savedSchool) setSchoolInfo(JSON.parse(savedSchool))
+    if (globalSchoolInfo) {
+       setSchoolInfo(globalSchoolInfo)
+    }
     setMounted(true)
-  }, [])
+  }, [globalSchoolInfo])
 
   if (!mounted) return null
 
@@ -90,7 +95,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     localStorage.setItem('depaid-subjects', JSON.stringify(subjects))
-    localStorage.setItem('depaid-school-info', JSON.stringify(schoolInfo))
+    setGlobalSchoolInfo(schoolInfo)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -114,7 +119,10 @@ export default function SettingsPage() {
       try {
         const config = JSON.parse(ev.target?.result as string)
         if (config.subjects) setSubjects(config.subjects)
-        if (config.schoolInfo) setSchoolInfo(config.schoolInfo)
+        if (config.schoolInfo) {
+           setSchoolInfo(config.schoolInfo)
+           setGlobalSchoolInfo(config.schoolInfo)
+        }
         alert("Settings imported successfully!")
       } catch {
         alert("Invalid config file.")
@@ -199,6 +207,10 @@ export default function SettingsPage() {
             <div className="space-y-1.5">
               <Label>Class Adviser Name</Label>
               <Input value={schoolInfo.adviserName} onChange={e => setSchoolInfo({...schoolInfo, adviserName: e.target.value})} className="bg-white" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>School Head Name</Label>
+              <Input value={schoolInfo.schoolHeadName} onChange={e => setSchoolInfo({...schoolInfo, schoolHeadName: e.target.value})} className="bg-white" />
             </div>
           </div>
         </CardContent>

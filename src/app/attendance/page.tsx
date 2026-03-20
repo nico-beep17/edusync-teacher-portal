@@ -139,6 +139,7 @@ export default function AttendancePage() {
   const [mounted, setMounted] = useState(false)
   const globalStudents = useTeacherStore(s => s.students)
   const globalAttendance = useTeacherStore(s => s.attendance)
+  const globalSchoolInfo = useTeacherStore(s => s.schoolInfo)
   const updateAttendance = useTeacherStore(s => s.updateAttendance)
 
   const [localAtt, setLocalAtt] = useState<Record<string, Record<string, string>>>({})
@@ -319,7 +320,7 @@ export default function AttendancePage() {
       globalStudents.forEach(s => {
         attPayload[s.lrn] = (globalAttendance[s.lrn] || []).map(r => ({ date: r.date, status: r.status }))
       })
-      const si: any = { section: 'ARIES', gradeLevel: 'Grade 8', schoolYear: '2025-2026', quarter: 'Q1', adviserName: 'JENIVIVE ORTEGA PUNAY', schoolId: '316405', schoolName: 'QUEZON NATIONAL HIGH SCHOOL' }
+      const si: any = { ...globalSchoolInfo }
       if (summaryOverride) si.sf2Summary = summaryOverride
       const res = await fetch('/api/export/sf', {
         method: 'POST',
