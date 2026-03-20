@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   CheckCircle2, Zap, Crown, Lock, ArrowRight,
   FileText, BarChart2, Brain, Bell, Download,
-  ShieldCheck, Wifi, Sparkles, Gift, Tag, X, Users
+  ShieldCheck, Wifi, Sparkles, Gift, Tag, X, Users, Star, Info
 } from "lucide-react"
 
 const FREE_FEATURES = [
@@ -26,47 +26,40 @@ const PRO_FEATURES = [
   { icon: Crown, text: "SF5 Promotion & Retention analytics" },
 ]
 
-// Referral codes — in production this would be validated server-side
-const VALID_REFERRAL_PATTERN = /^[A-Z0-9]{6,10}$/i
-
 // Pricing
 const PRICING = {
-  monthly:  { regular: 299, referral: 199 },
-  annual:   { regular: 2499, referral: 1999 },
+  regular: 899,
+  deped: 699,
+  referralDiscount: 200,
+  referralMonths: 6, // discount applies for 6 months from subscription start
 }
 
-const REFERRAL_REWARDS = [
-  { referrals: 1,  reward: "₱100 off for 1 month of your subscription" },
-  { referrals: 5,  reward: "₱100 off for 5 months of your subscription" },
-  { referrals: 10, reward: "₱100 off for 10 months of your subscription" },
-]
+// Referral program
+const POINTS_PER_REFERRAL = 100   // 10 referrals × 100pts = 1000pts
+const POINTS_FOR_FREE_MONTH = 1000
+
+const VALID_REFERRAL_PATTERN = /^[A-Z0-9]{6,10}$/i
 
 export default function PaywallPage() {
   const router = useRouter()
-  const [selected, setSelected] = useState<"monthly" | "annual">("annual")
+  const [isDepEd, setIsDepEd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [referralCode, setReferralCode] = useState("")
   const [referralApplied, setReferralApplied] = useState(false)
   const [referralError, setReferralError] = useState("")
-  const [showReferralRewards, setShowReferralRewards] = useState(false)
+  const [showReferralInfo, setShowReferralInfo] = useState(false)
 
-  const isReferralValid = VALID_REFERRAL_PATTERN.test(referralCode)
-  const price = referralApplied
-    ? PRICING[selected].referral
-    : PRICING[selected].regular
-  const savings = referralApplied
-    ? PRICING[selected].regular - PRICING[selected].referral
-    : 0
-
-  const annualActivePrice = referralApplied ? PRICING.annual.referral : PRICING.annual.regular
-  const annualMonthlyCost = Math.round(annualActivePrice / 12)
-  const annualSavingsVsMonthly = referralApplied
-    ? (PRICING.monthly.referral * 12) - PRICING.annual.referral
-    : (PRICING.monthly.regular * 12) - PRICING.annual.regular
+  const basePrice = isDepEd ? PRICING.deped : PRICING.regular
+  const discountedPrice = basePrice - PRICING.referralDiscount
+  const displayPrice = referralApplied ? discountedPrice : basePrice
+  const savings = referralApplied ? PRICING.referralDiscount : 0
 
   const handleApplyReferral = () => {
     if (!referralCode.trim()) { setReferralError("Please enter a referral code."); return }
-    if (!isReferralValid) { setReferralError("Invalid code format. Codes are 6–10 alphanumeric characters."); return }
+    if (!VALID_REFERRAL_PATTERN.test(referralCode)) {
+      setReferralError("Invalid code format. Codes are 6–10 alphanumeric characters.")
+      return
+    }
     setReferralApplied(true)
     setReferralError("")
   }
@@ -80,7 +73,13 @@ export default function PaywallPage() {
   const handleUpgrade = () => {
     setLoading(true)
     setTimeout(() => {
-      alert(`Payment gateway coming soon!\nPlan: Pro ${selected === "monthly" ? "Monthly" : "Annual"}\nPrice: ₱${price.toLocaleString()}${referralApplied ? ` (referral applied: -₱${savings})` : ''}\n\nEnjoy full access! 🎉`)
+      const planLabel = isDepEd ? "DepEd Teacher Monthly" : "Pro Monthly"
+      const referralNote = referralApplied
+        ? `\nReferral applied: -₱${savings}/mo for first 6 months from subscription start`
+        : ""
+      alert(
+        `Payment gateway coming soon!\nPlan: ${planLabel}\nPrice: ₱${displayPrice}/mo${referralNote}\n\nEnjoy full access! 🎉`
+      )
       router.push("/dashboard")
     }, 1000)
   }
@@ -127,7 +126,7 @@ export default function PaywallPage() {
             <span style={{ color: "#003876" }}>DepAid Pro</span>
           </h1>
           <p className="text-base" style={{ color: "#5A6A7E" }}>
-            Upgrade to access unlimited forms, AI-powered tools, cloud sync, and automated DepEd reports.
+            One simple monthly plan. Unlimited forms, AI-powered tools, cloud sync, and automated DepEd reports.
           </p>
         </div>
 
@@ -200,10 +199,87 @@ export default function PaywallPage() {
           </div>
         </div>
 
-        {/* Referral Code Input */}
-        <div className="mb-6">
+        {/* ─── Pricing Card ─── */}
+        <div className="mb-6 rounded-2xl p-6" style={{
+          background: "linear-gradient(160deg, #FFFFFF 0%, #F4F7FC 100%)",
+          border: "2px solid #003876",
+          boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 20px rgba(0,56,118,0.1)"
+        }}>
+          <p className="font-black text-sm mb-4" style={{ color: "#111A24" }}>Monthly Subscription</p>
+
+          {/* DepEd Toggle */}
+          <button
+            onClick={() => setIsDepEd(v => !v)}
+            className="w-full rounded-xl px-4 py-3 flex items-center gap-3 mb-5 transition-all"
+            style={isDepEd ? {
+              background: "linear-gradient(160deg, #FFFFFF 0%, #EEF6FF 100%)",
+              border: "2px solid #003876",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,56,118,0.12)"
+            } : {
+              background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
+              border: "1px solid #D4DCE6",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+            }}
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{
+              background: isDepEd ? "linear-gradient(180deg, #003876, #002555)" : "linear-gradient(180deg, #EEF2F8, #E4EAF4)",
+              border: isDepEd ? "1px solid #001F4D" : "1px solid #C8D4E0",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset"
+            }}>
+              <ShieldCheck size={14} style={{ color: isDepEd ? "#FFF" : "#8898AC" }} />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm" style={{ color: isDepEd ? "#003876" : "#3A4A5E" }}>
+                I am a DepEd Teacher
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: isDepEd ? "#3060A0" : "#8898AC" }}>
+                Verified DepEd teachers get a special rate — ₱699/month, no monthly cap
+              </p>
+            </div>
+            {/* Toggle visual */}
+            <div className="relative h-6 w-11 rounded-full shrink-0 transition-all" style={{
+              background: isDepEd ? "#003876" : "#C8D4E0",
+              boxShadow: isDepEd ? "0 0 8px rgba(0,56,118,0.4)" : "none"
+            }}>
+              <div className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-all" style={{
+                left: isDepEd ? "calc(100% - 1.35rem)" : "0.125rem",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.2)"
+              }} />
+            </div>
+          </button>
+
+          {/* Price Display */}
+          <div className="flex items-end gap-3 mb-4">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-black" style={{ color: "#003876" }}>
+                  ₱{displayPrice.toLocaleString()}
+                </span>
+                <span className="text-sm font-bold" style={{ color: "#8898AC" }}>/month</span>
+                {referralApplied && (
+                  <span className="text-lg line-through font-bold" style={{ color: "#C8D4E0" }}>
+                    ₱{basePrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              {referralApplied && (
+                <p className="text-xs font-bold mt-1" style={{ color: "#1C8A60" }}>
+                  🎉 ₱{savings} off/month for first {PRICING.referralMonths} months from subscription start
+                </p>
+              )}
+              {!referralApplied && isDepEd && (
+                <p className="text-xs font-semibold mt-1" style={{ color: "#003876" }}>
+                  ✅ DepEd verified rate — save ₱{PRICING.regular - PRICING.deped}/mo vs regular
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="skeu-divider mb-4" />
+
+          {/* Referral Code Input */}
           {!referralApplied ? (
-            <div className="rounded-xl p-4" style={{
+            <div className="rounded-xl p-4 mb-4" style={{
               background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
               border: "1px solid #D4DCE6",
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 8px rgba(0,0,0,0.06)"
@@ -212,7 +288,7 @@ export default function PaywallPage() {
                 <Tag size={14} style={{ color: "#5A6A7E" }} />
                 <p className="text-sm font-bold" style={{ color: "#111A24" }}>Have a referral code?</p>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full ml-auto" style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
-                  ₱100 off 1st month
+                  ₱200 off · 6 months
                 </span>
               </div>
               <div className="flex gap-2">
@@ -234,114 +310,34 @@ export default function PaywallPage() {
                 <p className="text-xs mt-2 font-medium" style={{ color: "#C03030" }}>⚠️ {referralError}</p>
               )}
               <p className="text-xs mt-2" style={{ color: "#8898AC" }}>
-                Got a code from a colleague? Applying it gives you a discounted rate.
+                A referral code gives you <strong>₱200 off/month for 6 months</strong>, counted from your subscription start date.
               </p>
             </div>
           ) : (
-            <div className="rounded-xl px-4 py-3 flex items-center gap-3 animate-in fade-in duration-300" style={{
+            <div className="rounded-xl px-4 py-3 flex items-start gap-3 mb-4 animate-in fade-in duration-300" style={{
               background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 100%)",
               border: "2px solid #003876",
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 10px rgba(28,165,96,0.15)"
             }}>
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(180deg, #E8F7EE, #D4F0DC)", border: "1px solid #A8D8BA" }}>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(180deg, #E8F7EE, #D4F0DC)", border: "1px solid #A8D8BA" }}>
                 <Gift size={15} style={{ color: "#003876" }} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-black" style={{ color: "#003876" }}>
                   Referral code <span className="font-mono bg-green-50 px-1.5 py-0.5 rounded">{referralCode}</span> applied!
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "#5A8A6A" }}>
-                  <strong>₱100 off your first month</strong> has been applied. From month 2 onwards, regular pricing applies.
+                <p className="text-xs mt-1" style={{ color: "#5A8A6A" }}>
+                  <strong>₱200 off/month</strong> for your first 6 months, starting from your subscription date.
+                  After month 6, regular pricing resumes — even if you claimed a free month within that period.
                 </p>
               </div>
-              <button onClick={handleRemoveReferral} className="text-slate-400 hover:text-slate-600 shrink-0">
+              <button onClick={handleRemoveReferral} className="text-slate-400 hover:text-slate-600 shrink-0 mt-0.5">
                 <X size={15} />
               </button>
             </div>
           )}
-        </div>
 
-        {/* Plan Picker — Monthly & Annual only */}
-        <div className="mb-6">
-          <p className="text-center font-black text-sm mb-3" style={{ color: "#111A24" }}>Choose Your Billing Cycle</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
-            {/* Monthly */}
-            {(["monthly", "annual"] as const).map(plan => {
-              const isSelected = selected === plan
-              const regularPrice = PRICING[plan].regular
-              const activePrice = referralApplied ? PRICING[plan].referral : regularPrice
-
-              return (
-                <button
-                  key={plan}
-                  onClick={() => setSelected(plan)}
-                  className="relative rounded-xl p-5 text-left transition-all"
-                  style={isSelected ? {
-                    background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 100%)",
-                    border: "2px solid #003876",
-                    boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 18px rgba(28,165,96,0.18)"
-                  } : {
-                    background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
-                    border: "1px solid #D4DCE6",
-                    boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 8px rgba(0,0,0,0.06)"
-                  }}
-                >
-                  {plan === "annual" && (
-                    <span
-                      className="absolute -top-2.5 left-4 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full"
-                      style={{ background: "#003876", color: "#FFF", boxShadow: "0 2px 6px rgba(227,10,36,0.4)" }}
-                    >
-                      Best Value — Save ₱{annualSavingsVsMonthly.toLocaleString()}/yr
-                    </span>
-                  )}
-
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <p className="font-black text-base" style={{ color: "#111A24" }}>
-                        {plan === "monthly" ? "Monthly" : "Annual"}
-                      </p>
-                      <p className="skeu-label mt-0.5" style={{ fontSize: "0.6rem" }}>
-                        {plan === "monthly" ? "Billed every month" : "Billed once per year"}
-                      </p>
-                    </div>
-                    <div className="h-5 w-5 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 transition-all"
-                      style={{ borderColor: isSelected ? "#003876" : "#C8D4E0", background: isSelected ? "#003876" : "#FFF" }}>
-                      {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
-                    </div>
-                  </div>
-
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-3xl font-black" style={{ color: isSelected ? "#003876" : "#111A24" }}>
-                      ₱{activePrice.toLocaleString()}
-                    </span>
-                    <span className="skeu-label" style={{ fontSize: "0.65rem" }}>
-                      /{plan === "monthly" ? "month" : "year"}
-                    </span>
-                    {referralApplied && (
-                      <span className="text-sm line-through" style={{ color: "#B8C4D4" }}>
-                        ₱{regularPrice.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  {plan === "annual" && (
-                    <p className="text-xs mt-1.5 font-semibold" style={{ color: "#003876" }}>
-                      ≈ ₱{annualMonthlyCost}/month — pay less, stress less
-                    </p>
-                  )}
-                  {referralApplied && (
-                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
-                      <Gift size={9} /> -₱100 first month only
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="flex flex-col items-center gap-3 max-w-md mx-auto">
+          {/* CTA */}
           <button
             onClick={handleUpgrade}
             disabled={loading}
@@ -351,25 +347,34 @@ export default function PaywallPage() {
               ? <><span className="animate-spin inline-block">⏳</span> Processing...</>
               : <>
                   <Zap size={15} className="fill-white" />
-                  Upgrade to Pro — ₱{price.toLocaleString()}
-                  {selected === "monthly" ? "/mo" : "/yr"}
+                  Upgrade to Pro — ₱{displayPrice.toLocaleString()}/mo
                   <ArrowRight size={14} />
                 </>
             }
           </button>
           <button
             onClick={() => router.push("/dashboard")}
-            className="text-xs font-medium underline underline-offset-2"
+            className="w-full text-center text-xs font-medium underline underline-offset-2 mt-3"
             style={{ color: "#8898AC" }}
           >
             Continue with Free plan for now
           </button>
+
+          {/* 6-month note */}
+          {referralApplied && (
+            <div className="mt-3 rounded-lg px-4 py-3 flex items-start gap-2" style={{ background: "#FFF9EC", border: "1px solid #F0D080" }}>
+              <Info size={13} style={{ color: "#9A6800", marginTop: 1, flexShrink: 0 }} />
+              <p className="text-xs font-medium" style={{ color: "#5A3A08" }}>
+                The 6-month discount window is fixed from your <strong>subscription start date</strong>. Claiming a free month (via referral points) does not extend or reset this window.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Referral Rewards Section */}
-        <div className="mt-10 max-w-2xl mx-auto">
+        {/* ─── Referral Program Panel ─── */}
+        <div className="mb-6">
           <button
-            onClick={() => setShowReferralRewards(v => !v)}
+            onClick={() => setShowReferralInfo(v => !v)}
             className="w-full rounded-xl px-5 py-4 flex items-center gap-3 text-left transition-all"
             style={{
               background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
@@ -383,18 +388,18 @@ export default function PaywallPage() {
             </div>
             <div className="flex-1">
               <p className="font-black text-sm" style={{ color: "#111A24" }}>
-                📣 Refer a colleague — earn ₱100 off your own subscription
+                📣 Refer colleagues — earn points & free months
               </p>
               <p className="text-xs mt-0.5" style={{ color: "#8898AC" }}>
-                Share your personal referral code. For every teacher who pays using it, you get ₱100 off one month of your own plan.
+                Every 10 paid referrals = 1,000 pts = 1 free month, claimable anytime.
               </p>
             </div>
             <span className="text-xs font-bold" style={{ color: "#003876" }}>
-              {showReferralRewards ? "Hide ▲" : "Learn more ▼"}
+              {showReferralInfo ? "Hide ▲" : "Learn more ▼"}
             </span>
           </button>
 
-          {showReferralRewards && (
+          {showReferralInfo && (
             <div
               className="mt-2 rounded-xl p-5 animate-in fade-in slide-in-from-top-2 duration-300"
               style={{
@@ -403,36 +408,57 @@ export default function PaywallPage() {
                 boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.07)"
               }}
             >
-              <p className="text-sm font-black mb-1" style={{ color: "#111A24" }}>
-                How referral rewards work
+              <p className="text-sm font-black mb-1" style={{ color: "#111A24" }}>Referral Rewards Program</p>
+              <p className="text-xs mb-5" style={{ color: "#8898AC" }}>
+                Share your unique referral code. When a new teacher subscribes using it, you earn <strong style={{ color: "#003876" }}>100 points</strong>. Accumulate 1,000 points (10 paid referrals) to redeem 1 free month.
               </p>
-              <p className="text-xs mb-4" style={{ color: "#8898AC" }}>
-                Each paid referral earns you <strong style={{ color: "#003876" }}>₱100 off</strong> your next month's subscription — the same first-month discount your referee received. One referral = one discounted month.
-              </p>
-              <div className="space-y-3 mb-4">
-                {REFERRAL_REWARDS.map(({ referrals, reward }) => (
+
+              {/* Points ladder */}
+              <div className="space-y-3 mb-5">
+                {[
+                  { referrals: 1,  pts: 100,  note: "100 points earned" },
+                  { referrals: 5,  pts: 500,  note: "500 points — halfway to a free month" },
+                  { referrals: 10, pts: 1000, note: "1,000 points → redeem 1 FREE month!" },
+                ].map(({ referrals, pts, note }) => (
                   <div key={referrals} className="flex items-center gap-3 rounded-lg p-3"
-                    style={{ background: "#F4F7FC", border: "1px solid #DDE4EE" }}>
-                    <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-sm shrink-0"
-                      style={{ background: "linear-gradient(180deg, #E30A24, #B5081C)", color: "#FFF", border: "1px solid #8A0615" }}>
-                      {referrals}
+                    style={{ background: referrals === 10 ? "linear-gradient(160deg,#FFF9EC,#FFF3D4)" : "#F4F7FC", border: referrals === 10 ? "1px solid #F0D080" : "1px solid #DDE4EE" }}>
+                    <div className="h-9 w-9 rounded-full flex items-center justify-center font-black text-sm shrink-0"
+                      style={{ background: referrals === 10 ? "linear-gradient(180deg, #E30A24, #B5081C)" : "linear-gradient(180deg,#E8F0FF,#D8E4FF)", color: referrals === 10 ? "#FFF" : "#3060C0", border: referrals === 10 ? "1px solid #8A0615" : "1px solid #B0C4F0" }}>
+                      {referrals === 10 ? <Star size={14} /> : referrals}
                     </div>
                     <div>
                       <p className="text-xs font-black" style={{ color: "#111A24" }}>
-                        {referrals} paid referral{referrals > 1 ? "s" : ""}
+                        {referrals} paid referral{referrals > 1 ? "s" : ""} = {pts.toLocaleString()} pts
                       </p>
-                      <p className="text-xs" style={{ color: "#003876", fontWeight: 600 }}>→ {reward}</p>
+                      <p className="text-xs font-semibold" style={{ color: referrals === 10 ? "#C03000" : "#003876" }}>→ {note}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="rounded-lg px-4 py-3 skeu-alert-amber">
-                <p className="text-xs font-bold" style={{ color: "#5A3A08" }}>
-                  ⚠️ A referral only counts when the referred teacher actually pays for a plan — not just signs up.
-                </p>
+
+              {/* Rules */}
+              <div className="space-y-2.5">
+                <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{ background: "#F0F6FF", border: "1px solid #B8D0F0" }}>
+                  <Info size={13} style={{ color: "#3060C0", marginTop: 1, flexShrink: 0 }} />
+                  <p className="text-xs font-medium" style={{ color: "#1A3A70" }}>
+                    <strong>Free month claim is independent</strong> from the referral discount. Claiming a free month does <strong>not</strong> add to any 6-month ₱200 discount window — those are separate programs.
+                  </p>
+                </div>
+                <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{ background: "#FFF9EC", border: "1px solid #F0D080" }}>
+                  <Info size={13} style={{ color: "#9A6800", marginTop: 1, flexShrink: 0 }} />
+                  <p className="text-xs font-medium" style={{ color: "#5A3A08" }}>
+                    The <strong>₱200 off / 6-month window</strong> runs from your <em>subscription start date</em>. If you claim a free month during month 3, the window still ends at month 6 from your original start.
+                  </p>
+                </div>
+                <div className="rounded-lg px-4 py-3" style={{ background: "#FFF4F4", border: "1px solid #E8CCCC" }}>
+                  <p className="text-xs font-bold" style={{ color: "#A03030" }}>
+                    ⚠️ A referral only counts when the referred teacher <em>actually pays</em> — not just signs up.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs mt-3 text-center" style={{ color: "#8898AC" }}>
-                Your personal referral code will be shown in your account dashboard after upgrading.
+
+              <p className="text-xs mt-4 text-center" style={{ color: "#8898AC" }}>
+                Your personal referral code and point balance will appear in your dashboard after upgrading.
               </p>
             </div>
           )}
