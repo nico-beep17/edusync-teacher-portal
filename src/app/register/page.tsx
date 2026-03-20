@@ -99,7 +99,7 @@ export default function RegisterPage() {
     >
       {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(28,165,96,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(28,165,96,0.04) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(227,10,36,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(227,10,36,0.04) 1px, transparent 1px)",
         backgroundSize: "48px 48px"
       }} />
 
@@ -125,7 +125,7 @@ export default function RegisterPage() {
         }}>
 
           {/* Top LED strip */}
-          <div className="h-1" style={{ background: "linear-gradient(90deg, #1ca560 0%, #28CC70 40%, #1ca560 100%)", boxShadow: "0 2px 8px rgba(28,165,96,0.4)" }} />
+          <div className="h-1" style={{ background: "linear-gradient(90deg, #003876 0%, #28CC70 40%, #003876 100%)", boxShadow: "0 2px 8px rgba(227,10,36,0.4)" }} />
 
           {/* Progress Bar */}
           <div className="px-8 pt-5 pb-4" style={{ borderBottom: "1px solid #E4E9EF" }}>
@@ -134,13 +134,13 @@ export default function RegisterPage() {
                 style={step < 1 ? { background: "#EEF2F8", border: "1px solid #C8D4E0", color: "#8898AC" } : {}}>
                 {step > 1 ? <CheckCircle2 size={14} /> : "1"}
               </div>
-              <span className="skeu-label text-[11px]" style={{ color: step === 1 ? "#1ca560" : "#B8C4D4" }}>Personal Info</span>
+              <span className="skeu-label text-[11px]" style={{ color: step === 1 ? "#003876" : "#B8C4D4" }}>Personal Info</span>
               <div className="flex-1 h-px" style={{ backgroundImage: "linear-gradient(90deg, #C8D4E0, #DDE4EE)" }} />
               <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition-all`}
-                style={step >= 2 ? { background: "linear-gradient(180deg, #22B868, #179050)", border: "1px solid #148044", color: "#FFF", boxShadow: "0 2px 8px rgba(28,165,96,0.3)" } : { background: "#EEF2F8", border: "1px solid #C8D4E0", color: "#8898AC" }}>
+                style={step >= 2 ? { background: "linear-gradient(180deg, #E30A24, #B5081C)", border: "1px solid #8A0615", color: "#FFF", boxShadow: "0 2px 8px rgba(227,10,36,0.3)" } : { background: "#EEF2F8", border: "1px solid #C8D4E0", color: "#8898AC" }}>
                 2
               </div>
-              <span className="skeu-label text-[11px]" style={{ color: step === 2 ? "#1ca560" : "#B8C4D4" }}>School Info</span>
+              <span className="skeu-label text-[11px]" style={{ color: step === 2 ? "#003876" : "#B8C4D4" }}>School Info</span>
             </div>
           </div>
 
@@ -157,7 +157,7 @@ export default function RegisterPage() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(180deg, #E8F7EE, #D8EEE4)", border: "1px solid #A8D8BA", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-                    <User size={14} style={{ color: "#1ca560" }} />
+                    <User size={14} style={{ color: "#003876" }} />
                   </div>
                   <p className="text-sm font-black" style={{ color: "#111A24" }}>Your Information</p>
                 </div>
@@ -234,7 +234,7 @@ export default function RegisterPage() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(180deg, #E8F7EE, #D8EEE4)", border: "1px solid #A8D8BA", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-                    <School size={14} style={{ color: "#1ca560" }} />
+                    <School size={14} style={{ color: "#003876" }} />
                   </div>
                   <p className="text-sm font-black" style={{ color: "#111A24" }}>School Information</p>
                 </div>
@@ -300,7 +300,7 @@ export default function RegisterPage() {
           <div className="px-8 py-4 text-center" style={{ borderTop: "1px solid #E4E9EF", background: "linear-gradient(180deg, #FAFCFF 0%, #F5F8FC 100%)" }}>
             <p className="text-xs" style={{ color: "#5A6A7E" }}>
               Already have an account?{" "}
-              <Link href="/login" className="font-bold" style={{ color: "#1ca560" }}>Sign in here</Link>
+              <Link href="/login" className="font-bold" style={{ color: "#003876" }}>Sign in here</Link>
             </p>
           </div>
 

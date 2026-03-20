@@ -58,26 +58,81 @@ export default function SF5Page() {
               const status = avg >= 75 ? "PROMOTED" : (avg > 0 ? "RETAINED" : "PENDING")
               return { ...s, average: avg, status }
           })
-          const res = await fetch('/api/export/sf5', {
+          const res = await fetch('/api/export/sf', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ students: exportStudents })
+              body: JSON.stringify({
+                form: 'sf5',
+                students: exportStudents,
+                schoolInfo: {
+                  region: 'XI',
+                  division: 'Panabo City',
+                  schoolId: '316405',
+                  schoolYear: '2025 - 2026',
+                  schoolName: 'QUEZON NATIONAL HIGH SCHOOL',
+                  gradeLevel: 'Grade 8',
+                  section: 'ARIES'
+                }
+              })
           });
           if (!res.ok) {
               const e = await res.json()
-              throw new Error(e.error || "Template mapping failed. Put 'School-Forms-1-7 .xlsx' in public/templates/");
+              throw new Error(e.error || "SF5 Export failed");
           }
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `SF5_Report.xlsx`;
+          a.download = `Promotion_Grade8_ARIES_SF5.xlsx`;
           document.body.appendChild(a);
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
       } catch (err: any) {
-          alert("Native Export Error: " + err.message);
+          alert("Export Error: " + err.message);
+      }
+  }
+
+  const handleExportSF6 = async () => {
+      try {
+          const exportStudents = students.map(s => {
+              const sGrades = gradesMap[s.lrn] || []
+              const avg = parseFloat(computeAverage(sGrades, subjects))
+              const status = avg >= 75 ? "PROMOTED" : (avg > 0 ? "RETAINED" : "PENDING")
+              return { ...s, average: avg, status }
+          })
+          const res = await fetch('/api/export/sf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                form: 'sf6',
+                students: exportStudents,
+                schoolInfo: {
+                  region: 'XI',
+                  division: 'Panabo City',
+                  schoolId: '316405',
+                  schoolYear: '2025 - 2026',
+                  schoolName: 'QUEZON NATIONAL HIGH SCHOOL',
+                  gradeLevel: 'Grade 8',
+                  section: 'ARIES'
+                }
+              })
+          });
+          if (!res.ok) {
+              const e = await res.json()
+              throw new Error(e.error || "SF6 Export failed");
+          }
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Promotion_Summary_Grade8_ARIES_SF6.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+      } catch (err: any) {
+          alert("Export Error: " + err.message);
       }
   }
 
@@ -88,12 +143,15 @@ export default function SF5Page() {
           <h1 className="text-3xl font-bold tracking-tight">School Form 5 (SF5)</h1>
           <p className="text-muted-foreground mt-1">Report on Promotion and Level of Proficiency</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
           <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700">
-             <Printer className="mr-2 h-4 w-4" /> Print Report
+             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button onClick={handleExport} className="bg-[#1ca560] hover:bg-[#158045]">
-            <Download className="mr-2 h-4 w-4" /> Download Excel
+          <Button onClick={handleExport} className="bg-[#E3001B] hover:bg-[#B30015]">
+            <Download className="mr-2 h-4 w-4" /> Export SF5
+          </Button>
+          <Button onClick={handleExportSF6} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
+            <Download className="mr-2 h-4 w-4" /> Export SF6 (Summary)
           </Button>
         </div>
       </div>
@@ -135,7 +193,7 @@ export default function SF5Page() {
                       <TableCell className="font-mono text-xs text-slate-600">{s.lrn}</TableCell>
                       <TableCell className="font-semibold border-r">{s.name}</TableCell>
                       <TableCell className="text-center font-bold">{avg > 0 ? avg : '-'}</TableCell>
-                      <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#1ca560]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
+                      <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#003876]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
                       <TableCell className="text-slate-400 italic text-sm">
                         {(() => {
                           const sGrades = gradesMap[s.lrn] || []
@@ -159,7 +217,7 @@ export default function SF5Page() {
                       <TableCell className="font-mono text-xs text-slate-600">{s.lrn}</TableCell>
                       <TableCell className="font-semibold border-r">{s.name}</TableCell>
                       <TableCell className="text-center font-bold">{avg > 0 ? avg : '-'}</TableCell>
-                      <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#1ca560]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
+                      <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#003876]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
                       <TableCell className="text-slate-400 italic text-sm">
                         {(() => {
                           const sGrades = gradesMap[s.lrn] || []

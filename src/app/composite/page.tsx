@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Calculator, Printer, FileDown, Inbox, CheckCircle2, Clock } from "lucide-react"
+import { Calculator, Printer, FileDown, Inbox, CheckCircle2, Clock, Loader2 } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
 import { exportToCSV } from "@/lib/export-utils"
@@ -29,6 +29,7 @@ const computeAverage = (grades: any[], requiredSubjects: string[]) => {
 export default function CompositeGradesPage() {
   const [mounted, setMounted] = useState(false)
   const [finalized, setFinalized] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const students = useTeacherStore(s => s.students)
   const gradesMap = useTeacherStore(s => s.grades)
 
@@ -42,28 +43,35 @@ export default function CompositeGradesPage() {
   const subjects = ['Filipino', 'English', 'Mathematics', 'Science', 'Ap', 'Epp/tle', 'Mapeh', 'Esp']
 
   const handleExport = async () => {
+      setIsExporting(true)
       try {
           const exportStudents = students.map(s => {
               const sGrades = gradesMap[s.lrn] || []
               return { ...s, average: parseFloat(computeAverage(sGrades, subjects)) }
           })
-          const res = await fetch('/api/export/composite', {
+          const res = await fetch('/api/export/sf', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ students: exportStudents })
+              body: JSON.stringify({ form: 'composite', students: exportStudents })
           });
           if (!res.ok) throw new Error("Template mapping failed. Ensure 'Composite G8 ARIES.xlsx' is in public/templates/");
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `CAMIGAO_Composite_Grades.xlsx`;
+          
+          // Better File Naming Convention
+          const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+          a.download = `Composite_Grades_Grade8_ARIES_Q1_${timestamp}.xlsx`;
+          
           document.body.appendChild(a);
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
       } catch (err: any) {
           alert("Native Export Error: " + err.message);
+      } finally {
+          setIsExporting(false)
       }
   }
   return (
@@ -79,8 +87,17 @@ export default function CompositeGradesPage() {
           <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700 shadow-sm">
              <Printer className="mr-2 h-4 w-4" /> Print Composite
           </Button>
-          <Button onClick={handleExport} className="bg-[#1ca560] hover:bg-[#158045]">
-            <FileDown className="mr-2 h-4 w-4" /> Export to Excel
+          <Button onClick={handleExport} disabled={isExporting} className="bg-[#E3001B] hover:bg-[#B30015] transition-all">
+            {isExporting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin outline-none" />
+                Generating...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <FileDown className="w-4 h-4" /> Export to Excel
+              </span>
+            )}
           </Button>
         </div>
       </div>
@@ -110,10 +127,10 @@ export default function CompositeGradesPage() {
                      const isComplete = totalCount > 0 && submittedCount === totalCount;
                      
                      return (
-                        <div key={sub} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border ${isComplete ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 shadow-sm'}`}>
-                           {isComplete ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Clock className="w-3.5 h-3.5 text-amber-500" />}
+                        <div key={sub} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border ${isComplete ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-slate-600 border-slate-200 shadow-sm'}`}>
+                           {isComplete ? <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> : <Clock className="w-3.5 h-3.5 text-amber-500" />}
                            {sub}
-                           <span className={`ml-1 px-1.5 py-0.5 rounded-sm ${isComplete ? 'bg-emerald-100/50 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                           <span className={`ml-1 px-1.5 py-0.5 rounded-sm ${isComplete ? 'bg-blue-100/50 text-blue-800' : 'bg-slate-100 text-slate-500'}`}>
                              {submittedCount}/{totalCount}
                            </span>
                         </div>
@@ -147,7 +164,7 @@ export default function CompositeGradesPage() {
               setFinalized(true)
               setTimeout(() => setFinalized(false), 4000)
             }}
-            className={finalized ? 'bg-emerald-100 text-emerald-700' : ''}
+            className={finalized ? 'bg-blue-100 text-blue-700' : ''}
           >
             {finalized 
               ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Finalized!</>
@@ -198,7 +215,7 @@ export default function CompositeGradesPage() {
                     <TableCell className="text-center">{getGrade('Mapeh')}</TableCell>
                     <TableCell className="text-center border-r">{getGrade('Esp')}</TableCell>
                     <TableCell className="text-center font-bold text-slate-900 bg-slate-50/50">{avg > 0 ? avg : '-'}</TableCell>
-                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#1ca560]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
+                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#003876]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
                   </TableRow>
                 )
               })}
@@ -227,7 +244,7 @@ export default function CompositeGradesPage() {
                     <TableCell className="text-center">{getGrade('Mapeh')}</TableCell>
                     <TableCell className="text-center border-r">{getGrade('Esp')}</TableCell>
                     <TableCell className="text-center font-bold text-slate-900 bg-slate-50/50">{avg > 0 ? avg : '-'}</TableCell>
-                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#1ca560]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
+                    <TableCell className={`text-center font-medium ${remarks === 'Passed' ? 'text-[#003876]' : remarks === 'Pending' ? 'text-amber-500' : 'text-red-500'} bg-slate-50/50`}>{remarks}</TableCell>
                   </TableRow>
                 )
               })}

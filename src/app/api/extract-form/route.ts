@@ -22,12 +22,12 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: "You are a specialized OCR AI that extracts student data from Philippine DepEd Form 138 report cards, birth certificates, or general records. You must respond in STRICT JSON format matching this schema: { lrn: string (12 digits, fallback to a random 12 digit number if none visible), firstName: string, lastName: string, sex: 'M' | 'F' (Extrapolate from name or picture if blank) }. Only return the perfectly structured JSON object."
+          content: "You are a specialized OCR AI that extracts student data from ANY document (Philippine DepEd Form 138 report cards, class lists, directories, birth certificates). You must detect as many students as are clearly visible. You must respond in STRICT JSON format matching this schema: { students: [ { lrn: string (12 digits, fallback to a random 12 digit number if none visible), firstName: string, middleName: string (Optional, omit if none), lastName: string, suffix: string (Optional, Jr, III, etc), sex: 'M' | 'F' (Extrapolate from name or picture if blank) } ] }. Only return the perfectly structured JSON object."
         },
         {
           role: "user",
           content: [
-            { type: "text", text: "Scan this document and intelligently extract or extrapolate the learner's details." },
+            { type: "text", text: "Scan this document and intelligently extract ALL learner details present." },
             {
               type: "image_url",
               image_url: {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 300,
+      max_tokens: 1500,
     });
 
     const content = response.choices[0].message.content;

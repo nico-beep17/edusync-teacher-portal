@@ -75,13 +75,13 @@ export function QRScannerModal() {
 
            {lastScanned ? (
              <div className="flex flex-col items-center justify-center z-10 animate-in zoom-in duration-300">
-               <div className="h-16 w-16 bg-emerald-500 rounded-full flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+               <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
                  <CheckCircle2 className="text-white h-10 w-10" />
                </div>
                <span className="text-white px-4 py-1.5 bg-black/60 rounded-full font-bold tracking-wide backdrop-blur-sm">
                  PRESENT
                </span>
-               <span className="text-emerald-300 font-medium mt-2 text-center text-lg">{lastScanned}</span>
+               <span className="text-blue-300 font-medium mt-2 text-center text-lg">{lastScanned}</span>
              </div>
            ) : (
              <div className="text-center z-10">

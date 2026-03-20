@@ -4,27 +4,91 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Users, FileOutput, ArrowRight, Plus, Trash2, X } from "lucide-react"
+import { Users, FileOutput, ArrowRight, Plus, Trash2, X, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { useTeacherStore } from "@/store/useStore"
 import { useState, useEffect } from "react"
 
 const GRADIENTS = [
   "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-500",
+  "from-blue-500 to-teal-500",
   "from-purple-500 to-pink-500",
   "from-orange-500 to-amber-500",
   "from-rose-500 to-red-500",
   "from-indigo-500 to-blue-500",
-  "from-teal-500 to-emerald-500",
+  "from-teal-500 to-blue-500",
   "from-fuchsia-500 to-purple-500",
 ]
 
+// ─── Confirm Delete Modal ─────────────────────────────────────────────────────
+function ConfirmDeleteModal({
+  item,
+  onConfirm,
+  onCancel,
+}: {
+  item: { subject: string; section: string }
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, #FFFFFF 0%, #FFF8F8 100%)",
+          border: "1px solid #E8CCCC",
+          boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 20px 60px rgba(0,0,0,0.18)"
+        }}
+      >
+        <div className="h-1" style={{ background: "linear-gradient(90deg, #C03030, #E04040, #C03030)", boxShadow: "0 2px 6px rgba(192,48,48,0.4)" }} />
+        <div className="px-6 py-6">
+          <div className="flex flex-col items-center text-center mb-5">
+            <div
+              className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+              style={{ background: "linear-gradient(180deg, #FFF4F4 0%, #FFE8E8 100%)", border: "1px solid #E8CCCC", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 3px 8px rgba(192,48,48,0.15)" }}
+            >
+              <AlertTriangle size={22} style={{ color: "#C03030" }} />
+            </div>
+            <h3 className="text-base font-black" style={{ color: "#111A24" }}>Remove from Workload?</h3>
+            <p className="text-sm mt-1" style={{ color: "#8898AC" }}>
+              This will remove <strong style={{ color: "#C03030" }}>{item.subject}</strong> (Section {item.section}) from your workload and E-Class Records.
+            </p>
+            <p className="text-xs mt-2 font-medium" style={{ color: "#C08080" }}>
+              Grades already transmitted to the adviser are NOT deleted.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="skeu-btn-ghost flex-1 h-10 rounded-xl text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 h-10 rounded-xl text-sm font-bold text-white transition-all active:scale-95"
+              style={{
+                background: "linear-gradient(180deg, #E04040, #C03030)",
+                border: "1px solid #A02020",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 12px rgba(192,48,48,0.35)"
+              }}
+            >
+              Yes, Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WorkloadDashboard() {
   const [mounted, setMounted] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newSubject, setNewSubject] = useState({ subject: "", section: "", students: "", schedule: "" })
-  
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; subject: string; section: string } | null>(null)
+
   const workload = useTeacherStore(s => s.workload)
   const addWorkload = useTeacherStore(s => s.addWorkload)
   const removeWorkload = useTeacherStore(s => s.removeWorkload)
@@ -48,125 +112,150 @@ export default function WorkloadDashboard() {
     setShowAddForm(false)
   }
 
+  const handleDeleteClick = (e: React.MouseEvent, w: { id: string; subject: string; section: string }) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDeleteTarget(w)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      removeWorkload(deleteTarget.id)
+      setDeleteTarget(null)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      
+
+      {/* Delete confirm modal */}
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          item={deleteTarget}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teaching Workload</h1>
-          <p className="text-muted-foreground mt-1">Manage your subject assignments and E-Class Records.</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>Teaching Workload</h1>
+          <p className="mt-1 text-sm" style={{ color: "#8898AC" }}>Manage your subject assignments and E-Class Records.</p>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)} 
-          className={showAddForm ? "bg-slate-600 hover:bg-slate-700" : "bg-[#1ca560] hover:bg-[#158045]"}
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className={showAddForm ? "skeu-btn-ghost h-9 px-4 rounded-lg text-sm flex items-center gap-2" : "skeu-btn h-9 px-4 rounded-lg text-sm flex items-center gap-2"}
         >
-          {showAddForm ? <><X className="mr-2 h-4 w-4" /> Cancel</> : <><Plus className="mr-2 h-4 w-4" /> Add Subject</>}
-        </Button>
+          {showAddForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Subject</>}
+        </button>
       </div>
 
       {/* Add Subject Form */}
       {showAddForm && (
-        <Card className="bg-white border border-emerald-200 shadow-sm animate-in slide-in-from-top-2 fade-in duration-300">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Add New Subject to Workload</CardTitle>
-            <CardDescription>This will create a new E-Class Record entry for you to manage.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <Label>Subject Name *</Label>
-                <Input 
-                  value={newSubject.subject} 
-                  onChange={e => setNewSubject({...newSubject, subject: e.target.value})}
-                  placeholder="e.g. English 8"
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Section *</Label>
-                <Input 
-                  value={newSubject.section} 
-                  onChange={e => setNewSubject({...newSubject, section: e.target.value})}
-                  placeholder="e.g. ARIES"
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>No. of Students</Label>
-                <Input 
-                  type="number"
-                  value={newSubject.students} 
-                  onChange={e => setNewSubject({...newSubject, students: e.target.value})}
-                  placeholder="e.g. 35"
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Schedule</Label>
-                <Input 
-                  value={newSubject.schedule} 
-                  onChange={e => setNewSubject({...newSubject, schedule: e.target.value})}
-                  placeholder="e.g. M/W/F 8:00-9:00 AM"
-                  className="bg-white"
-                />
-              </div>
+        <div
+          className="rounded-xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-300"
+          style={{
+            background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 100%)",
+            border: "1px solid #A8D8BA",
+            boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 14px rgba(28,165,96,0.1)"
+          }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid #D4E8DC", background: "linear-gradient(180deg, #F4FBF7 0%, #EDF8F2 100%)" }}>
+            <p className="font-black text-sm" style={{ color: "#111A24" }}>Add New Subject to Workload</p>
+            <p className="skeu-label mt-0.5">This creates a new E-Class Record you can manage.</p>
+          </div>
+          <div className="p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {[
+                { label: "Subject Name *", key: "subject", ph: "e.g. English 8" },
+                { label: "Section *", key: "section", ph: "e.g. ARIES" },
+                { label: "No. of Students", key: "students", ph: "e.g. 35", type: "number" },
+                { label: "Schedule", key: "schedule", ph: "e.g. M/W/F 8:00-9:00 AM" },
+              ].map(({ label, key, ph, type }) => (
+                <div key={key} className="space-y-1.5">
+                  <Label className="skeu-label">{label}</Label>
+                  <input
+                    type={type || "text"}
+                    placeholder={ph}
+                    value={(newSubject as any)[key]}
+                    onChange={e => setNewSubject({ ...newSubject, [key]: e.target.value })}
+                    className="skeu-input w-full h-10 px-3 text-sm rounded-lg"
+                  />
+                </div>
+              ))}
             </div>
-            <Button onClick={handleAdd} className="mt-4 bg-[#1ca560] hover:bg-[#158045]">
-              <Plus className="mr-2 h-4 w-4" /> Add to Workload
-            </Button>
-          </CardContent>
-        </Card>
+            <button onClick={handleAdd} className="skeu-btn h-9 px-4 rounded-lg text-sm flex items-center gap-2">
+              <Plus size={14} /> Add to Workload
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Grid of Subjects */}
       {workload.length === 0 ? (
-        <Card className="bg-white/80 py-12 flex flex-col items-center justify-center text-center border-dashed border-2">
-          <FileOutput className="h-12 w-12 text-slate-300 mb-4" />
-          <p className="text-lg font-semibold text-slate-500">No subjects in your workload yet</p>
-          <p className="text-sm text-slate-400 mt-1">Click "Add Subject" to create your first E-Class Record.</p>
-        </Card>
+        <div className="skeu-card py-14 flex flex-col items-center justify-center text-center">
+          <FileOutput size={40} style={{ color: "#C8D4E0" }} className="mb-4" />
+          <p className="text-base font-black" style={{ color: "#5A6A7E" }}>No subjects in your workload yet</p>
+          <p className="text-sm mt-1" style={{ color: "#8898AC" }}>Click "Add Subject" to create your first E-Class Record.</p>
+        </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {workload.map((w) => (
             <div key={w.id} className="group relative">
               <Link href={`/ecr/${w.slug}`} className="block">
-                <Card className="h-full bg-white/80 backdrop-blur-md border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
-                  <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${w.gradient}`}></div>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
+                <div
+                  className="h-full rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 relative"
+                  style={{
+                    background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+                    border: "1px solid #DDE4EE",
+                    boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.08)"
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 0 rgba(255,255,255,1) inset, 0 8px 24px rgba(0,0,0,0.12)" }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.08)" }}
+                >
+                  {/* Color accent top bar */}
+                  <div className={`w-full h-1.5 bg-gradient-to-r ${w.gradient}`} />
+
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <CardTitle className="text-xl font-bold">{w.subject}</CardTitle>
-                        <CardDescription className="font-semibold text-slate-600 mt-1">Section: {w.section}</CardDescription>
+                        <p className="text-xl font-black" style={{ color: "#111A24" }}>{w.subject}</p>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: "#5A6A7E" }}>Section: {w.section}</p>
                       </div>
-                      <div className={`p-2 rounded-lg bg-gradient-to-r ${w.gradient} text-white`}>
-                        <FileOutput className="h-4 w-4" />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col gap-2 mt-2">
-                      <div className="flex items-center text-sm text-slate-500">
-                        <Users className="h-4 w-4 mr-2" />
-                        {w.students} Enrolled Students
-                      </div>
-                      <div className="flex items-center text-sm text-slate-500 mt-1">
-                        {w.schedule}
+                      <div className={`p-2 rounded-lg bg-gradient-to-r ${w.gradient} text-white shrink-0`}>
+                        <FileOutput size={14} />
                       </div>
                     </div>
-                    <div className="mt-6 flex items-center text-sm font-semibold text-[#1ca560] group-hover:text-[#158045] transition-colors">
-                      Open E-Class Record <ArrowRight className="ml-1 h-4 w-4" />
+
+                    <div className="skeu-divider mb-3" />
+
+                    <div className="flex flex-col gap-1.5 text-sm" style={{ color: "#8898AC" }}>
+                      <div className="flex items-center gap-2">
+                        <Users size={13} /> {w.students} Enrolled Students
+                      </div>
+                      <div className="text-xs">{w.schedule}</div>
                     </div>
-                  </CardContent>
-                </Card>
+
+                    <div className="mt-5 flex items-center text-sm font-bold gap-1" style={{ color: "#003876" }}>
+                      Open E-Class Record <ArrowRight size={14} />
+                    </div>
+                  </div>
+                </div>
               </Link>
-              {/* Remove button */}
-              <button 
-                onClick={(e) => { e.preventDefault(); removeWorkload(w.id) }}
-                className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 rounded-full bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center"
+
+              {/* Delete button — shows on hover, opens modal */}
+              <button
+                onClick={(e) => handleDeleteClick(e, w)}
+                className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8 rounded-lg flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(180deg, #FFF0F0, #FFE4E4)",
+                  border: "1px solid #E8AAAA",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 6px rgba(192,48,48,0.15)"
+                }}
                 title="Remove from workload"
               >
-                <Trash2 size={13} />
+                <Trash2 size={13} style={{ color: "#C03030" }} />
               </button>
             </div>
           ))}

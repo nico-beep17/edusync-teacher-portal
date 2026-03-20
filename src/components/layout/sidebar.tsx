@@ -5,15 +5,16 @@ import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import {
   LayoutDashboard, ClipboardCheck, BarChart3,
-  Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X
+  Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X, Book
 } from "lucide-react"
 
 const navItems = [
   { label: "ADVISORY", type: "header" as const },
   { href: "/", label: "Dashboard", icon: LayoutDashboard, description: "Overview & masterlist" },
-  { href: "/attendance", label: "SF2 Attendance", icon: ClipboardCheck, description: "Daily attendance & QR" },
+  { href: "/attendance", label: "Attendance (SF2)", icon: ClipboardCheck, description: "Daily attendance & QR" },
   { href: "/composite", label: "Composite Grades", icon: BarChart3, description: "Collect & aggregate" },
-  { href: "/sf5", label: "SF5 Promotion", icon: Award, description: "Promotion & retention" },
+  { href: "/sf3", label: "Books Issued (SF3)", icon: Book, description: "Book inventory" },
+  { href: "/sf5", label: "Promotion (SF5)", icon: Award, description: "Promotion & retention" },
   { label: "SUBJECT TEACHING", type: "header" as const },
   { href: "/workload", label: "My Workload", icon: BookOpen, description: "ECR & grading sheets" },
   { label: "SYSTEM", type: "header" as const },
@@ -95,7 +96,7 @@ export function Sidebar() {
               className={`group flex items-center gap-3 rounded-lg text-sm transition-all duration-100 ${collapsed ? "justify-center p-2.5" : "px-3 py-2.5"}`}
               style={active ? {
                 background: "linear-gradient(90deg, rgba(28,165,96,0.10) 0%, rgba(28,165,96,0.04) 100%)",
-                borderLeft: "2.5px solid #1ca560",
+                borderLeft: "2.5px solid #003876",
                 paddingLeft: collapsed ? undefined : "10px",
                 boxShadow: "inset 0 1px 0 rgba(28,165,96,0.08), 0 1px 3px rgba(0,0,0,0.04)",
                 borderRadius: "0 8px 8px 0",
@@ -114,14 +115,14 @@ export function Sidebar() {
               <Icon
                 size={18}
                 className="shrink-0 transition-colors"
-                style={{ color: active ? "#1ca560" : "#8898AC" }}
+                style={{ color: active ? "#003876" : "#8898AC" }}
               />
               {!collapsed && (
                 <div className="flex flex-col overflow-hidden flex-1">
                   <span
                     className="truncate leading-tight text-[13px]"
                     style={{
-                      color: active ? "#1ca560" : "#3A4A5E",
+                      color: active ? "#003876" : "#3A4A5E",
                       fontWeight: active ? 700 : 500,
                     }}
                   >
@@ -156,7 +157,7 @@ export function Sidebar() {
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 5px rgba(0,0,0,0.06)"
             }}
           >
-            <p className="text-xs font-bold" style={{ color: "#1ca560" }}>Grade 8 — ARIES</p>
+            <p className="text-xs font-bold" style={{ color: "#003876" }}>Grade 8 — ARIES</p>
             <p className="text-[10px] mt-0.5" style={{ color: "#8898AC" }}>S.Y. 2025-2026 • Quarter 1</p>
           </div>
         </div>
@@ -171,7 +172,7 @@ export function Sidebar() {
           onClick={() => setCollapsed(!collapsed)}
           className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition-colors"
           style={{ color: "#8898AC" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#1ca560")}
+          onMouseEnter={e => (e.currentTarget.style.color = "#003876")}
           onMouseLeave={e => (e.currentTarget.style.color = "#8898AC")}
         >
           {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /> Collapse</>}

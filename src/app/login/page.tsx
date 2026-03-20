@@ -71,7 +71,7 @@ export default function LoginPage() {
           boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 12px 40px rgba(0,0,0,0.11), 0 4px 12px rgba(0,0,0,0.07)"
         }}>
           {/* Green LED top strip */}
-          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #1ca560 0%, #28CC70 40%, #1ca560 100%)", boxShadow: "0 2px 8px rgba(28,165,96,0.4)" }} />
+          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #003876 0%, #28CC70 40%, #003876 100%)", boxShadow: "0 2px 8px rgba(28,165,96,0.4)" }} />
 
           <div className="px-8 py-8">
             {/* Logo */}
@@ -137,7 +137,7 @@ export default function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label htmlFor="password" className="skeu-label">Password</label>
-                  <a href="#" className="text-[10px] font-bold" style={{ color: "#1ca560" }}>Forgot password?</a>
+                  <a href="#" className="text-[10px] font-bold" style={{ color: "#003876" }}>Forgot password?</a>
                 </div>
                 <div className="relative">
                   <input
@@ -168,7 +168,7 @@ export default function LoginPage() {
             <div className="mt-5 pt-4 flex flex-col items-center gap-2" style={{ borderTop: "1px solid #E4E9EF" }}>
               <p className="text-xs" style={{ color: "#5A6A7E" }}>
                 New to DepAid?{" "}
-                <Link href="/register" className="font-bold" style={{ color: "#1ca560" }}>Create account</Link>
+                <Link href="/register" className="font-bold" style={{ color: "#003876" }}>Create account</Link>
               </p>
               <p className="skeu-label" style={{ fontSize: "0.6rem" }}>Offline-First PWA • DepEd Compliant</p>
             </div>

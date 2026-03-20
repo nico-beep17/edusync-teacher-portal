@@ -3,10 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Save, CalendarIcon, CheckCircle2, Lock, ShieldAlert, Eye, EyeOff, X } from "lucide-react"
+import { Save, CalendarIcon, CheckCircle2, Lock, Eye, EyeOff, FileDown, X, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useRef, useState } from "react"
 import { QRScannerModal } from "@/components/attendance/qr-scanner-modal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -140,11 +143,26 @@ export default function AttendancePage() {
 
   const [localAtt, setLocalAtt] = useState<Record<string, Record<string, string>>>({})
   const [saved, setSaved] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [sf2ModalOpen, setSf2ModalOpen] = useState(false)
+  const [sf2Summary, setSf2Summary] = useState({
+    lateEnrollmentM: 0, lateEnrollmentF: 0,
+    dropOutM: 0, dropOutF: 0,
+    transferredOutM: 0, transferredOutF: 0,
+    transferredInM: 0, transferredInF: 0,
+  })
+
+  // Export month: default current month
+  const [exportMonth, setExportMonth] = useState(() => {
+    const n = new Date()
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`
+  })
 
   // PIN unlock state
   const [pinOpen, setPinOpen] = useState(false)
   const [pendingEdit, setPendingEdit] = useState<{ lrn: string; dateId: string } | null>(null)
   const [unlockedDates, setUnlockedDates] = useState<Set<string>>(new Set())
+  const [weekOffset, setWeekOffset] = useState(0)
 
   useEffect(() => {
     const initialAtt: Record<string, Record<string, string>> = {}
@@ -159,12 +177,15 @@ export default function AttendancePage() {
 
   if (!mounted) return null
 
-  // Generate last 5 weekdays
+  // Generate last 5 weekdays offset by weekOffset
   const todayObj = new Date()
   const todayId = todayObj.toISOString().split('T')[0]
 
+  const anchorDate = new Date()
+  anchorDate.setDate(anchorDate.getDate() + (weekOffset * 7))
+
   const weekDates: { label: string; dayName: string; dateId: string; isToday: boolean }[] = []
-  let d = new Date(todayObj)
+  let d = new Date(anchorDate)
   while (weekDates.length < 5) {
     const dow = d.getDay()
     if (dow !== 0 && dow !== 6) {
@@ -215,7 +236,7 @@ export default function AttendancePage() {
   const getStatusStyle = (status: string, locked: boolean) => {
     if (locked) return { bg: '#F4F7FC', color: '#B8C4D4', border: '#DDE4EE', cursor: 'pointer' }
     switch (status) {
-      case 'P': return { bg: '#E8F7EE', color: '#1ca560', border: '#A8D8BA', cursor: 'pointer' }
+      case 'P': return { bg: '#E8F7EE', color: '#003876', border: '#A8D8BA', cursor: 'pointer' }
       case 'A': return { bg: '#FFF0F0', color: '#C03030', border: '#E8AAAA', cursor: 'pointer' }
       case 'L': return { bg: '#FFFBEC', color: '#D08010', border: '#E8D080', cursor: 'pointer' }
       default: return { bg: '#F8FAFB', color: '#C8D4E0', border: '#DDE4EE', cursor: 'pointer' }
@@ -290,6 +311,48 @@ export default function AttendancePage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  const handleExport = async (formCode: 'sf2' | 'sf4', summaryOverride?: any) => {
+    setExporting(true)
+    try {
+      const [y, m] = exportMonth.split('-').map(Number)
+      const attPayload: Record<string, any[]> = {}
+      globalStudents.forEach(s => {
+        attPayload[s.lrn] = (globalAttendance[s.lrn] || []).map(r => ({ date: r.date, status: r.status }))
+      })
+      const si: any = { section: 'ARIES', gradeLevel: 'Grade 8', schoolYear: '2025-2026', quarter: 'Q1', adviserName: 'JENIVIVE ORTEGA PUNAY', schoolId: '316405', schoolName: 'QUEZON NATIONAL HIGH SCHOOL' }
+      if (summaryOverride) si.sf2Summary = summaryOverride
+      const res = await fetch('/api/export/sf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          form: formCode,
+          students: globalStudents,
+          attendance: attPayload,
+          year: y,
+          month: m - 1, 
+          schoolInfo: si
+        })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Export failed')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // Place SF code at the end
+      const prefix = formCode === 'sf2' ? 'Attendance' : 'Monthly_Movement'
+      a.download = `${prefix}_Grade8_ARIES_${exportMonth}_${formCode.toUpperCase()}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(`${formCode.toUpperCase()} Export Error: ` + err.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* PIN Dialog */}
@@ -303,35 +366,65 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Daily Attendance (SF2)</h1>
-          <p className="text-muted-foreground mt-1">Grade 8 - ARIES • Class Advisory</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: '#111A24' }}>Daily Attendance (SF2)</h1>
+          <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Grade 8 - ARIES • Class Advisory</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <QRScannerModal />
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-white border border-slate-200 text-sm font-medium text-slate-700">
-            <CalendarIcon className="h-4 w-4 text-slate-500" />
-            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </div>
-          <Button
+
+          {/* Mark all present */}
+          <button
             onClick={handleMarkAllPresent}
-            variant="outline"
-            className="bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 border-blue-200"
+            className="skeu-btn-ghost h-9 px-3 rounded-lg text-sm"
           >
-            Mark All Present (Today)
-          </Button>
-          <Button
+            ✓ Mark All Present
+          </button>
+
+          {/* Month picker for export */}
+          <div className="flex flex-col sm:flex-row items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #C8D4E0', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset' }}>
+            <div className="flex items-center gap-1.5 px-2.5 h-9 bg-white border-r border-slate-200">
+              <CalendarIcon size={13} style={{ color: '#8898AC' }} />
+              <input
+                type="month"
+                value={exportMonth}
+                onChange={e => setExportMonth(e.target.value)}
+                className="text-sm font-medium border-0 outline-none bg-transparent"
+                style={{ color: '#111A24' }}
+              />
+            </div>
+            <button
+              onClick={() => setSf2ModalOpen(true)}
+              disabled={exporting || globalStudents.length === 0}
+              className="h-9 px-3 text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 border-r border-[#8A0615]"
+              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
+            >
+              <FileDown size={13} />
+              SF2
+            </button>
+            <button
+              disabled
+              title="Coming Soon"
+              className="h-9 px-3 text-sm font-bold flex items-center gap-1.5 transition-all rounded-lg opacity-50 cursor-not-allowed"
+              style={{ background: 'linear-gradient(180deg, #888, #666)', color: '#FFF' }}
+            >
+              SF4
+            </button>
+          </div>
+
+          {/* Save */}
+          <button
             onClick={handleSave}
-            className="bg-[#1ca560] hover:bg-[#158045] transition-all active:scale-95"
+            className="skeu-btn h-9 px-4 rounded-lg text-sm flex items-center gap-2"
           >
-            {saved ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Saved!</> : <><Save className="mr-2 h-4 w-4" /> Save Record</>}
-          </Button>
+            {saved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save Record</>}
+          </button>
         </div>
       </div>
 
       {/* Save toast */}
       {saved && (
-        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 shadow-sm">
-          <CheckCircle2 className="h-5 w-5 text-[#1ca560] shrink-0" />
+        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 shadow-sm">
+          <CheckCircle2 className="h-5 w-5 text-[#003876] shrink-0" />
           <p className="font-semibold text-sm">Attendance records saved to local storage.</p>
         </div>
       )}
@@ -354,7 +447,7 @@ export default function AttendancePage() {
           </p>
           <p className="text-xs mt-0.5" style={{ color: "#8A6828" }}>
             Only <strong>today&apos;s</strong> column is editable. Clicking a past date requires your <strong>Teacher PIN</strong> to prevent student tampering.
-            {unlockedDates.size > 0 && <span className="text-[#1ca560]"> ({unlockedDates.size} date{unlockedDates.size !== 1 ? 's' : ''} unlocked this session)</span>}
+            {unlockedDates.size > 0 && <span className="text-[#003876]"> ({unlockedDates.size} date{unlockedDates.size !== 1 ? 's' : ''} unlocked this session)</span>}
           </p>
         </div>
       </div>
@@ -362,7 +455,7 @@ export default function AttendancePage() {
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { count: presentToday, label: "Present", sub: "Today", bg: "#E8F7EE", border: "#A8D8BA", color: "#1ca560", dark: "#1A3A28" },
+          { count: presentToday, label: "Present", sub: "Today", bg: "#E8F7EE", border: "#A8D8BA", color: "#003876", dark: "#1A3A28" },
           { count: absentToday, label: "Absent", sub: "Today", bg: "#FFF0F0", border: "#E8AAAA", color: "#C03030", dark: "#3A0A0A" },
           { count: lateToday, label: "Late", sub: "Today", bg: "#FFFBEC", border: "#E8D080", color: "#D08010", dark: "#3A2A08" },
         ].map(({ count, label, sub, bg, border, color, dark }) => (
@@ -388,11 +481,24 @@ export default function AttendancePage() {
           <div>
             <CardTitle>Attendance Register</CardTitle>
             <CardDescription className="mt-1 flex items-center gap-3 flex-wrap">
-              <span>Click cell to cycle: <span className="font-semibold text-[#1ca560]">Present (P)</span> → <span className="font-semibold text-red-500">Absent (A)</span> → <span className="font-semibold text-amber-500">Late (L)</span></span>
+              <span>Click cell to cycle: <span className="font-semibold text-[#003876]">Present (P)</span> → <span className="font-semibold text-red-500">Absent (A)</span> → <span className="font-semibold text-amber-500">Late (L)</span></span>
               <span className="flex items-center gap-1 text-xs" style={{ color: "#8898AC" }}>
                 <Lock size={10} /> Past dates require PIN
               </span>
             </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setWeekOffset(prev => prev - 1)}>
+              <ChevronLeft className="w-4 h-4 mr-1" /> Prev Week
+            </Button>
+            {weekOffset !== 0 && (
+              <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>
+                This Week
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setWeekOffset(prev => prev + 1)} disabled={weekOffset >= 0}>
+              Next Week <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -405,9 +511,9 @@ export default function AttendancePage() {
                   <TableHead key={day.dateId} className="text-center w-[70px]">
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[10px] font-medium text-slate-400 uppercase">{day.dayName}</span>
-                      <span className={`font-bold text-sm ${day.isToday ? 'text-[#1ca560]' : 'text-slate-700'}`}>{day.label}</span>
+                      <span className={`font-bold text-sm ${day.isToday ? 'text-[#003876]' : 'text-slate-700'}`}>{day.label}</span>
                       {day.isToday
-                        ? <span className="text-[8px] font-black text-[#1ca560] uppercase tracking-wider">Today</span>
+                        ? <span className="text-[8px] font-black text-[#003876] uppercase tracking-wider">Today</span>
                         : <span className="text-[9px]" style={{ color: '#C8D4E0' }}><Lock size={8} /></span>
                       }
                     </div>
@@ -431,6 +537,57 @@ export default function AttendancePage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* SF2 Summary Modal */}
+      <Dialog open={sf2ModalOpen} onOpenChange={setSf2ModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>SF2 Monthly Summary</DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">Fill in details before exporting. Auto-computed fields are calculated from your attendance data.</p>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {[
+              { label: 'Late Enrollment', mKey: 'lateEnrollmentM', fKey: 'lateEnrollmentF' },
+              { label: 'Drop Out', mKey: 'dropOutM', fKey: 'dropOutF' },
+              { label: 'Transferred Out', mKey: 'transferredOutM', fKey: 'transferredOutF' },
+              { label: 'Transferred In', mKey: 'transferredInM', fKey: 'transferredInF' },
+            ].map(({ label, mKey, fKey }) => (
+              <div key={mKey}>
+                <Label className="text-xs font-semibold text-slate-600">{label}</Label>
+                <div className="flex gap-2 mt-1">
+                  <div className="flex-1">
+                    <Label className="text-[10px] text-blue-600">Male</Label>
+                    <Input
+                      type="number" min={0}
+                      value={(sf2Summary as any)[mKey]}
+                      onChange={e => setSf2Summary(prev => ({ ...prev, [mKey]: Number(e.target.value) || 0 }))}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-[10px] text-pink-600">Female</Label>
+                    <Input
+                      type="number" min={0}
+                      value={(sf2Summary as any)[fKey]}
+                      onChange={e => setSf2Summary(prev => ({ ...prev, [fKey]: Number(e.target.value) || 0 }))}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => { setSf2ModalOpen(false); handleExport('sf2', sf2Summary) }}
+              disabled={exporting}
+              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
+            >
+              <FileDown size={14} />
+              {exporting ? 'Generating...' : 'Export SF2'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

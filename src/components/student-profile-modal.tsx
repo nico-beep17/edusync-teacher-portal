@@ -53,7 +53,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
         </DialogHeader>
 
         <div className="flex items-center gap-4 py-2 border-b border-slate-100">
-           <button onClick={() => setActiveTab('overview')} className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-[#1ca560] text-[#1ca560]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Academic Overview</button>
+           <button onClick={() => setActiveTab('overview')} className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-[#003876] text-[#003876]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Academic Overview</button>
            <button onClick={() => setActiveTab('badge')} className={`text-sm font-semibold pb-2 border-b-2 flex items-center transition-colors ${activeTab === 'badge' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
               <QrCode size={14} className="mr-1.5" /> ID Badge Generator
            </button>
@@ -97,7 +97,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
                         <TableRow key={i}>
                           <TableCell className="font-medium">{g.subject}</TableCell>
                           <TableCell className="text-center text-slate-500">-</TableCell>
-                          <TableCell className={`text-center font-bold ${g.quarterGrade >= 75 ? 'text-[#1ca560]' : 'text-red-500'}`}>
+                          <TableCell className={`text-center font-bold ${g.quarterGrade >= 75 ? 'text-[#003876]' : 'text-red-500'}`}>
                             {g.quarterGrade}
                           </TableCell>
                         </TableRow>
@@ -112,7 +112,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
           <div className="flex flex-col items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
              <div className="relative flex flex-col items-center w-[300px] h-[480px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden group">
                 {/* ID Header Graphic */}
-                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#1ca560] to-emerald-700 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#003876] to-blue-700 pointer-events-none">
                    <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
                 </div>
                 
@@ -121,8 +121,8 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 mb-2 shadow-lg overflow-hidden">
                       <img src="/depaid-logo.png" alt="DepAid" className="w-12 h-12 object-cover" />
                    </div>
-                   <h2 className="font-extrabold text-sm tracking-widest text-emerald-50">QUEZON NATL HIGH</h2>
-                   <p className="text-[10px] uppercase font-bold text-emerald-200 tracking-wider">DepAid ID • SY 2025-2026</p>
+                   <h2 className="font-extrabold text-sm tracking-widest text-blue-50">QUEZON NATL HIGH</h2>
+                   <p className="text-[10px] uppercase font-bold text-blue-200 tracking-wider">DepAid ID • SY 2025-2026</p>
                 </div>
 
                 {/* QR Focus */}
@@ -139,7 +139,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
                    <h1 className="text-xl font-bold text-slate-900 tracking-tight text-center leading-tight px-4">{student.name}</h1>
                    <div className="flex items-center gap-1.5 mt-2 bg-slate-100 rounded-full px-3 py-1">
                       <Sparkles size={12} className="text-amber-500" />
-                      <span className="font-mono text-xs font-semibold tracking-widest text-[#1ca560]">{student.lrn}</span>
+                      <span className="font-mono text-xs font-semibold tracking-widest text-[#003876]">{student.lrn}</span>
                    </div>
                    <p className="text-xs font-bold text-slate-400 mt-4 tracking-widest uppercase">Grade 8 ARIES</p>
                 </div>

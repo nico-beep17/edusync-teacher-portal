@@ -26,6 +26,13 @@ export type AttendanceEntry = {
   status: 'P' | 'A' | 'L'
 }
 
+export type BookEntry = {
+  id: string
+  title: string
+  dateIssued: string
+  dateReturned?: string
+}
+
 export type WorkloadEntry = {
   id: string
   subject: string
@@ -40,6 +47,7 @@ interface TeacherState {
   students: Student[]
   grades: Record<string, GradeEntry[]>
   attendance: Record<string, AttendanceEntry[]>
+  books: Record<string, BookEntry[]>
   workload: WorkloadEntry[]
   teacherPin: string
 
@@ -48,6 +56,9 @@ interface TeacherState {
   removeStudent: (lrn: string) => void
   updateGrade: (lrn: string, gradeData: GradeEntry) => void
   updateAttendance: (lrn: string, record: AttendanceEntry) => void
+  issueBook: (lrn: string, book: Omit<BookEntry, 'id'>) => void
+  returnBook: (lrn: string, bookId: string, date: string) => void
+  removeBook: (lrn: string, bookId: string) => void
   addWorkload: (entry: WorkloadEntry) => void
   removeWorkload: (id: string) => void
   setTeacherPin: (pin: string) => void
@@ -58,6 +69,7 @@ export const useTeacherStore = create<TeacherState>()(
   persist(
     (set) => ({
       teacherPin: '1234',
+      books: {},
       students: [
         { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
         { lrn: "101010101011", name: "BARRIENTOS, JOHN PAUL M.", sex: "M", status: "ENROLLED" },
@@ -137,25 +149,46 @@ export const useTeacherStore = create<TeacherState>()(
             { subject: "English", ww1: 18, ww2: 17, pt1: 23, pt2: 22, qa: 45, quarterGrade: 91 },
         ],
       },
-      attendance: {
-         "101010101010": [
-            { date: new Date().toISOString().split('T')[0], status: 'P' },
-            { date: '2026-03-18', status: 'A' },
-            { date: '2026-03-17', status: 'A' },
-         ],
-         "101010101013": [
-            { date: '2026-03-18', status: 'A' },
-            { date: '2026-03-17', status: 'A' },
-            { date: '2026-03-16', status: 'A' },
-         ],
-         "101010101015": [
-            { date: new Date().toISOString().split('T')[0], status: 'P' },
-            { date: '2026-03-18', status: 'P' },
-         ],
-      },
+      attendance: (() => {
+        // Generate full March 2026 attendance for all students
+        const att: Record<string, { date: string; status: 'P' | 'A' | 'L' }[]> = {}
+        const lrns = [
+          '101010101010','101010101011','101010101012','101010101013',
+          '101010101018','101010101019','101010101020','101010101021',
+          '101010101014','101010101015','101010101016','101010101017',
+          '101010101022','101010101023','101010101024','101010101025',
+        ]
+        // March 2026 weekdays
+        const marchDays: string[] = []
+        for (let d = 1; d <= 31; d++) {
+          const dow = new Date(2026, 2, d).getDay()
+          if (dow !== 0 && dow !== 6) marchDays.push(`2026-03-${String(d).padStart(2, '0')}`)
+        }
+        // Seed-like pattern per student for reproducible results
+        const patterns: Record<string, number> = {
+          '101010101010': 1, '101010101011': 2, '101010101012': 3, '101010101013': 4,
+          '101010101018': 5, '101010101019': 6, '101010101020': 7, '101010101021': 8,
+          '101010101014': 9, '101010101015': 10, '101010101016': 11, '101010101017': 12,
+          '101010101022': 13, '101010101023': 14, '101010101024': 15, '101010101025': 16,
+        }
+        lrns.forEach(lrn => {
+          const seed = patterns[lrn] || 1
+          att[lrn] = marchDays.map((date, idx) => {
+            const hash = (seed * 31 + idx * 17 + seed * idx) % 100
+            // CIJAS (101010101013): 5 consecutive absences Mar 9-13
+            if (lrn === '101010101013' && idx >= 5 && idx <= 9) return { date, status: 'A' as const }
+            // ~10% absent, ~5% late, rest present
+            let status: 'P' | 'A' | 'L' = 'P'
+            if (hash < 10) status = 'A'
+            else if (hash < 15) status = 'L'
+            return { date, status }
+          })
+        })
+        return att
+      })(),
       workload: [
         { id: "1", subject: "Filipino 8", section: "ARIES", students: 16, schedule: "M/W/F 8:00-9:00 AM", slug: "filipino-8-aries", gradient: "from-blue-500 to-cyan-500" },
-        { id: "2", subject: "MAPEH 8", section: "TAURUS", students: 40, schedule: "T/TH 10:00-11:30 AM", slug: "mapeh-8-taurus", gradient: "from-emerald-500 to-teal-500" },
+        { id: "2", subject: "MAPEH 8", section: "TAURUS", students: 40, schedule: "T/TH 10:00-11:30 AM", slug: "mapeh-8-taurus", gradient: "from-blue-500 to-teal-500" },
         { id: "3", subject: "Filipino 9", section: "GEMINI", students: 38, schedule: "M/W/F 1:00-2:00 PM", slug: "filipino-9-gemini", gradient: "from-purple-500 to-pink-500" },
       ],
       
@@ -214,6 +247,32 @@ export const useTeacherStore = create<TeacherState>()(
           attendance: {
             ...state.attendance,
             [lrn]: newAtt
+          }
+        }
+      }),
+
+      issueBook: (lrn, book) => set((state) => {
+        const studentBooks = state.books[lrn] || []
+        const newBook: BookEntry = { ...book, id: Math.random().toString(36).substring(7) }
+        return { books: { ...state.books, [lrn]: [...studentBooks, newBook] } }
+      }),
+
+      returnBook: (lrn, bookId, date) => set((state) => {
+        const studentBooks = state.books[lrn] || []
+        return {
+          books: {
+            ...state.books,
+            [lrn]: studentBooks.map(b => b.id === bookId ? { ...b, dateReturned: date } : b)
+          }
+        }
+      }),
+
+      removeBook: (lrn, bookId) => set((state) => {
+        const studentBooks = state.books[lrn] || []
+        return {
+          books: {
+            ...state.books,
+            [lrn]: studentBooks.filter(b => b.id !== bookId)
           }
         }
       }),

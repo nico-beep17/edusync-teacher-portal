@@ -140,15 +140,15 @@ export default function SettingsPage() {
               <Upload className="mr-2 h-4 w-4" /> Import Config
             </div>
           </label>
-          <Button onClick={handleSave} className={`transition-all active:scale-95 ${saved ? 'bg-emerald-700' : 'bg-[#1ca560] hover:bg-[#158045]'}`}>
+          <Button onClick={handleSave} className={`transition-all active:scale-95 ${saved ? 'bg-blue-700' : 'bg-[#E3001B] hover:bg-[#B30015]'}`}>
             {saved ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Saved!</> : <><Save className="mr-2 h-4 w-4" /> Save Settings</>}
           </Button>
         </div>
       </div>
 
       {saved && (
-        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 shadow-sm">
-          <CheckCircle2 className="h-5 w-5 text-[#1ca560] shrink-0" />
+        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 shadow-sm">
+          <CheckCircle2 className="h-5 w-5 text-[#003876] shrink-0" />
           <p className="font-semibold text-sm">All settings saved to local storage.</p>
         </div>
       )}
@@ -157,7 +157,7 @@ export default function SettingsPage() {
       <Card className="bg-white shadow-sm border border-slate-200/60">
         <CardHeader className="border-b bg-slate-50/50 pb-4">
           <div className="flex items-center gap-2">
-            <School className="h-5 w-5 text-[#1ca560]" />
+            <School className="h-5 w-5 text-[#003876]" />
             <CardTitle>School Information</CardTitle>
           </div>
           <CardDescription>This information appears on all generated forms (SF1, SF2, SF5).</CardDescription>
@@ -242,7 +242,7 @@ export default function SettingsPage() {
                         value={subject.name} 
                         onChange={e => handleSubjectChange(subject.id, 'name', e.target.value)}
                         placeholder="e.g. Filipino"
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#1ca560] h-9"
+                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#003876] h-9"
                       />
                     </TableCell>
                     <TableCell>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                         value={subject.abbreviation} 
                         onChange={e => handleSubjectChange(subject.id, 'abbreviation', e.target.value.toUpperCase())}
                         placeholder="FIL"
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#1ca560] h-9 text-center font-mono"
+                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#003876] h-9 text-center font-mono"
                         maxLength={4}
                       />
                     </TableCell>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                         type="number"
                         value={subject.ptWeight} 
                         onChange={e => handleSubjectChange(subject.id, 'ptWeight', parseInt(e.target.value) || 0)}
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-emerald-500 h-9 text-center w-16 mx-auto"
+                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-blue-500 h-9 text-center w-16 mx-auto"
                       />
                     </TableCell>
                     <TableCell>
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                       />
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isValid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isValid ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-600'}`}>
                         {total}%
                       </span>
                     </TableCell>
@@ -333,8 +333,8 @@ export default function SettingsPage() {
                 const file = e.target.files?.[0]
                 if (file) alert(`Photo captured! AI OCR will extract student data from the image.`)
               }} />
-              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group-hover:shadow-sm">
-                <div className="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
+              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-blue-300 hover:bg-blue-50/30 transition-all group-hover:shadow-sm">
+                <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
                   <Camera size={24} />
                 </div>
                 <p className="font-semibold text-sm text-slate-800">Capture Photo</p>
@@ -386,8 +386,8 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="pt-6">
           {pinSaved && (
-            <div className="mb-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3">
-              <CheckCircle2 className="h-5 w-5 text-[#1ca560] shrink-0" />
+            <div className="mb-4 flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3">
+              <CheckCircle2 className="h-5 w-5 text-[#003876] shrink-0" />
               <p className="font-semibold text-sm">PIN updated successfully!</p>
             </div>
           )}

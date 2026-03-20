@@ -3,7 +3,7 @@
 import { Bell, Search, Settings, LogOut, ChevronDown, Cloud, WifiOff } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTeacherStore } from "@/store/useStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -11,6 +11,7 @@ const pageTitles: Record<string, string> = {
   "/": "Advisory Dashboard",
   "/attendance": "SF2 Daily Attendance",
   "/composite": "Composite Grades",
+  "/sf3": "SF3 Book Issuance",
   "/sf5": "SF5 Promotion & Retention",
   "/workload": "Teaching Workload",
   "/settings": "Settings",
@@ -23,6 +24,20 @@ export function Topbar() {
   const [showResults, setShowResults] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [mounted, setMounted] = useState(false)
+  
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifs(false)
+      }
+    }
+    if (showNotifs) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showNotifs])
 
   const students = useTeacherStore(s => s.students)
   const gradesMap = useTeacherStore(s => s.grades)
@@ -77,7 +92,7 @@ export function Topbar() {
             style={isOnline ? {
               background: "linear-gradient(180deg, #E8F7EE 0%, #DDEEE5 100%)",
               border: "1px solid #A8D8BA",
-              color: "#1ca560",
+              color: "#003876",
               boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 4px rgba(0,0,0,0.06)"
             } : {
               background: "linear-gradient(180deg, #FFF8EC 0%, #FFEECC 100%)",
@@ -119,7 +134,7 @@ export function Topbar() {
                   onClick={() => { setSearchQuery(""); setShowResults(false) }}
                   className="flex items-center gap-3 px-3 py-2.5 border-b last:border-0 transition-colors"
                   style={{ borderColor: "#EEF2F8" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.04)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(227,10,36,0.04)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "")}
                 >
                   <div
@@ -142,7 +157,7 @@ export function Topbar() {
         </div>
 
         {/* Notifications */}
-        <div className="relative">
+        <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifs(!showNotifs)}
             className="relative flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-95"
@@ -201,7 +216,7 @@ export function Topbar() {
                       key={i}
                       className="px-4 py-2.5 transition-colors"
                       style={{ borderBottom: "1px solid #EEF2F8" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.04)")}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(227,10,36,0.04)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "")}
                     >
                       <p className="text-xs font-semibold" style={{ color: a.type === "error" ? "#C03030" : "#C07808" }}>
@@ -246,9 +261,9 @@ export function Topbar() {
             <div
               className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black"
               style={{
-                background: "linear-gradient(145deg, #22B868, #1ca560, #178848)",
-                border: "2px solid #148044",
-                boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 5px rgba(28,165,96,0.35)",
+                background: "linear-gradient(145deg, #E30A24, #003876, #178848)",
+                border: "2px solid #8A0615",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 5px rgba(227,10,36,0.35)",
                 color: "#FFFFFF"
               }}
             >
@@ -256,7 +271,7 @@ export function Topbar() {
             </div>
             <div className="hidden sm:flex flex-col items-start text-left">
               <span className="text-[11px] font-bold leading-none" style={{ color: "#111A24" }}>C. Rubino</span>
-              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#1ca560" }}>Teacher I</span>
+              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#003876" }}>Teacher I</span>
             </div>
             <ChevronDown size={11} className="hidden sm:block" style={{ color: "#8898AC" }} />
           </DropdownMenuTrigger>

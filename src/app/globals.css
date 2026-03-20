@@ -66,7 +66,7 @@
   --surface-900: #111A24;
 
   /* === Brand & LED Colors === */
-  --green-led:      #1ca560;
+  --green-led:      #003876;
   --green-led-glow: #22D572;
   --green-dim:      #E8F7EE;
   --green-border:   #A8D8BA;
@@ -107,21 +107,21 @@
   --card-foreground:      #111A24;
   --popover:              #FFFFFF;
   --popover-foreground:   #111A24;
-  --primary:              #1ca560;
+  --primary:              #003876;
   --primary-foreground:   #FFFFFF;
   --secondary:            #F0F3F6;
   --secondary-foreground: #3A4A5E;
   --muted:                #F0F3F6;
   --muted-foreground:     #8898AC;
   --accent:               #E8F7EE;
-  --accent-foreground:    #1ca560;
+  --accent-foreground:    #003876;
   --destructive:          #C03030;
   --border:               #D4DCE6;
   --input:                #E4E9EF;
-  --ring:                 #1ca560;
+  --ring:                 #003876;
   --radius:               0.5rem;
 
-  --chart-1: #1ca560;
+  --chart-1: #003876;
   --chart-2: #2060C0;
   --chart-3: #D08010;
   --chart-4: #10A0B8;
@@ -129,12 +129,12 @@
 
   --sidebar:                    #FFFFFF;
   --sidebar-foreground:         #3A4A5E;
-  --sidebar-primary:            #1ca560;
+  --sidebar-primary:            #003876;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent:             #F0F3F6;
-  --sidebar-accent-foreground:  #1ca560;
+  --sidebar-accent-foreground:  #003876;
   --sidebar-border:             #E0E6EE;
-  --sidebar-ring:               #1ca560;
+  --sidebar-ring:               #003876;
 }
 
 /* =================================================================
@@ -181,7 +181,7 @@
 
 /* === Primary Raised Button — green tech push-button === */
 .skeu-btn {
-  background: linear-gradient(180deg, #22B868 0%, #1ca560 55%, #179050 100%);
+  background: linear-gradient(180deg, #22B868 0%, #003876 55%, #179050 100%);
   border: 1px solid #148044;
   border-bottom: 2px solid #0E6035;
   border-top-color: #28CC70;
@@ -197,7 +197,7 @@
   transition: all 0.08s ease;
 }
 .skeu-btn:hover {
-  background: linear-gradient(180deg, #28CC74 0%, #22B868 55%, #1ca560 100%);
+  background: linear-gradient(180deg, #28CC74 0%, #22B868 55%, #003876 100%);
   box-shadow:
     0 1px 0 rgba(255,255,255,0.3) inset,
     0 -1px 0 rgba(0,0,0,0.12) inset,
@@ -206,7 +206,7 @@
   transform: translateY(-1px);
 }
 .skeu-btn:active {
-  background: linear-gradient(180deg, #179050 0%, #1ca560 100%);
+  background: linear-gradient(180deg, #179050 0%, #003876 100%);
   border-bottom: 1px solid #0E6035;
   box-shadow:
     0 3px 6px rgba(0,0,0,0.12) inset,
@@ -230,8 +230,8 @@
 }
 .skeu-btn-ghost:hover {
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 55%, #F0F5FF 100%);
-  border-color: #1ca560;
-  color: #1ca560;
+  border-color: #003876;
+  color: #003876;
   box-shadow:
     0 1px 0 rgba(255,255,255,1) inset,
     0 4px 10px rgba(0,0,0,0.1),
@@ -255,7 +255,7 @@
 }
 .skeu-input:focus {
   outline: none;
-  border-color: #1ca560;
+  border-color: #003876;
   border-top-color: #149050;
   box-shadow:
     0 2px 5px rgba(0,0,0,0.1) inset,
@@ -277,7 +277,7 @@
 }
 .skeu-select:focus {
   outline: none;
-  border-color: #1ca560;
+  border-color: #003876;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1) inset, 0 0 0 3px rgba(28,165,96,0.12);
 }
 
@@ -301,7 +301,7 @@
 /* === LED Indicator === */
 .skeu-led-green {
   width: 8px; height: 8px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #60FF98, #1ca560 60%, #0E7838);
+  background: radial-gradient(circle at 35% 30%, #60FF98, #003876 60%, #0E7838);
   box-shadow:
     0 0 5px rgba(28,165,96,0.7),
     0 0 10px rgba(28,165,96,0.3),
@@ -332,7 +332,7 @@
 /* === Active nav item — green edge glow === */
 .skeu-nav-active {
   background: linear-gradient(90deg, rgba(28,165,96,0.1) 0%, rgba(28,165,96,0.04) 100%);
-  border-left: 2.5px solid #1ca560;
+  border-left: 2.5px solid #003876;
   box-shadow: inset 0 1px 0 rgba(28,165,96,0.08), 0 1px 3px rgba(0,0,0,0.04);
 }
 
@@ -365,7 +365,7 @@
   background: linear-gradient(180deg, #E8F7EE 0%, #DDEEE5 100%);
   border: 1px solid #A8D8BA;
   box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 4px rgba(0,0,0,0.05);
-  color: #1ca560;
+  color: #003876;
   font-weight: 700;
 }
 

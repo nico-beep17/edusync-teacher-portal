@@ -36,9 +36,9 @@ const PRICING = {
 }
 
 const REFERRAL_REWARDS = [
-  { referrals: 1,  reward: "1 free month of Pro" },
-  { referrals: 5,  reward: "6 free months (5 earned + 1 bonus)" },
-  { referrals: 10, reward: "12 free months (10 earned + 2 bonus)" },
+  { referrals: 1,  reward: "₱100 off for 1 month of your subscription" },
+  { referrals: 5,  reward: "₱100 off for 5 months of your subscription" },
+  { referrals: 10, reward: "₱100 off for 10 months of your subscription" },
 ]
 
 export default function PaywallPage() {
@@ -58,7 +58,8 @@ export default function PaywallPage() {
     ? PRICING[selected].regular - PRICING[selected].referral
     : 0
 
-  const annualMonthlyCost = Math.round(price / 12)
+  const annualActivePrice = referralApplied ? PRICING.annual.referral : PRICING.annual.regular
+  const annualMonthlyCost = Math.round(annualActivePrice / 12)
   const annualSavingsVsMonthly = referralApplied
     ? (PRICING.monthly.referral * 12) - PRICING.annual.referral
     : (PRICING.monthly.regular * 12) - PRICING.annual.regular
@@ -90,7 +91,7 @@ export default function PaywallPage() {
 
       {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(28,165,96,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(28,165,96,0.04) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(227,10,36,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(227,10,36,0.04) 1px, transparent 1px)",
         backgroundSize: "48px 48px"
       }} />
 
@@ -115,7 +116,7 @@ export default function PaywallPage() {
             style={{
               background: "linear-gradient(180deg, #E8F7EE 0%, #D8EDE4 100%)",
               border: "1px solid #A8D8BA",
-              color: "#1ca560",
+              color: "#003876",
               boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 5px rgba(28,165,96,0.12)"
             }}
           >
@@ -123,7 +124,7 @@ export default function PaywallPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight mb-4" style={{ color: "#111A24" }}>
             Unlock the Full Power of{" "}
-            <span style={{ color: "#1ca560" }}>DepAid Pro</span>
+            <span style={{ color: "#003876" }}>DepAid Pro</span>
           </h1>
           <p className="text-base" style={{ color: "#5A6A7E" }}>
             Upgrade to access unlimited forms, AI-powered tools, cloud sync, and automated DepEd reports.
@@ -168,7 +169,7 @@ export default function PaywallPage() {
           {/* Pro */}
           <div className="rounded-xl p-6 relative overflow-hidden" style={{
             background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 50%, #E8F7EE 100%)",
-            border: "2px solid #1ca560",
+            border: "2px solid #003876",
             boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 8px 28px rgba(28,165,96,0.18), 0 4px 10px rgba(0,0,0,0.07)"
           }}>
             <div className="absolute top-3 right-3">
@@ -177,12 +178,12 @@ export default function PaywallPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(180deg, #22B868, #179050)", border: "1px solid #148044", boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 3px 8px rgba(28,165,96,0.35)" }}>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(180deg, #E30A24, #B5081C)", border: "1px solid #8A0615", boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 3px 8px rgba(227,10,36,0.35)" }}>
                 <Crown size={14} style={{ color: "#FFFFFF" }} />
               </div>
               <div>
                 <p className="font-black text-sm" style={{ color: "#111A24" }}>Pro Plan</p>
-                <p className="skeu-label" style={{ color: "#1ca560" }}>Everything you need</p>
+                <p className="skeu-label" style={{ color: "#003876" }}>Everything you need</p>
               </div>
             </div>
             <div className="skeu-divider mb-4" />
@@ -190,7 +191,7 @@ export default function PaywallPage() {
               {PRO_FEATURES.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm" style={{ color: "#1A2E20" }}>
                   <div className="h-5 w-5 rounded flex items-center justify-center shrink-0" style={{ background: "linear-gradient(180deg, #E8F7EE, #D4F0DC)", border: "1px solid #A8D8BA" }}>
-                    <CheckCircle2 size={11} style={{ color: "#1ca560" }} />
+                    <CheckCircle2 size={11} style={{ color: "#003876" }} />
                   </div>
                   {text}
                 </li>
@@ -210,9 +211,8 @@ export default function PaywallPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Tag size={14} style={{ color: "#5A6A7E" }} />
                 <p className="text-sm font-bold" style={{ color: "#111A24" }}>Have a referral code?</p>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full ml-auto" style={{ background: "#E8F7EE", color: "#1ca560", border: "1px solid #A8D8BA" }}>
-                  Save ₱{PRICING[selected].regular - PRICING[selected].referral}/
-                  {selected === "monthly" ? "mo" : "yr"}
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full ml-auto" style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
+                  ₱100 off 1st month
                 </span>
               </div>
               <div className="flex gap-2">
@@ -240,19 +240,18 @@ export default function PaywallPage() {
           ) : (
             <div className="rounded-xl px-4 py-3 flex items-center gap-3 animate-in fade-in duration-300" style={{
               background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 100%)",
-              border: "2px solid #1ca560",
+              border: "2px solid #003876",
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 10px rgba(28,165,96,0.15)"
             }}>
               <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(180deg, #E8F7EE, #D4F0DC)", border: "1px solid #A8D8BA" }}>
-                <Gift size={15} style={{ color: "#1ca560" }} />
+                <Gift size={15} style={{ color: "#003876" }} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black" style={{ color: "#1ca560" }}>
+                <p className="text-sm font-black" style={{ color: "#003876" }}>
                   Referral code <span className="font-mono bg-green-50 px-1.5 py-0.5 rounded">{referralCode}</span> applied!
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: "#5A8A6A" }}>
-                  You're saving <strong>₱{(PRICING[selected].regular - PRICING[selected].referral).toLocaleString()}</strong>
-                  {selected === "annual" ? "/year" : "/month"} — discounted rate active.
+                  <strong>₱100 off your first month</strong> has been applied. From month 2 onwards, regular pricing applies.
                 </p>
               </div>
               <button onClick={handleRemoveReferral} className="text-slate-400 hover:text-slate-600 shrink-0">
@@ -279,7 +278,7 @@ export default function PaywallPage() {
                   className="relative rounded-xl p-5 text-left transition-all"
                   style={isSelected ? {
                     background: "linear-gradient(160deg, #FFFFFF 0%, #F2FBF6 100%)",
-                    border: "2px solid #1ca560",
+                    border: "2px solid #003876",
                     boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 18px rgba(28,165,96,0.18)"
                   } : {
                     background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
@@ -290,7 +289,7 @@ export default function PaywallPage() {
                   {plan === "annual" && (
                     <span
                       className="absolute -top-2.5 left-4 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full"
-                      style={{ background: "#1ca560", color: "#FFF", boxShadow: "0 2px 6px rgba(28,165,96,0.4)" }}
+                      style={{ background: "#003876", color: "#FFF", boxShadow: "0 2px 6px rgba(227,10,36,0.4)" }}
                     >
                       Best Value — Save ₱{annualSavingsVsMonthly.toLocaleString()}/yr
                     </span>
@@ -306,13 +305,13 @@ export default function PaywallPage() {
                       </p>
                     </div>
                     <div className="h-5 w-5 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 transition-all"
-                      style={{ borderColor: isSelected ? "#1ca560" : "#C8D4E0", background: isSelected ? "#1ca560" : "#FFF" }}>
+                      style={{ borderColor: isSelected ? "#003876" : "#C8D4E0", background: isSelected ? "#003876" : "#FFF" }}>
                       {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                     </div>
                   </div>
 
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-3xl font-black" style={{ color: isSelected ? "#1ca560" : "#111A24" }}>
+                    <span className="text-3xl font-black" style={{ color: isSelected ? "#003876" : "#111A24" }}>
                       ₱{activePrice.toLocaleString()}
                     </span>
                     <span className="skeu-label" style={{ fontSize: "0.65rem" }}>
@@ -325,14 +324,14 @@ export default function PaywallPage() {
                     )}
                   </div>
                   {plan === "annual" && (
-                    <p className="text-xs mt-1.5 font-semibold" style={{ color: "#1ca560" }}>
+                    <p className="text-xs mt-1.5 font-semibold" style={{ color: "#003876" }}>
                       ≈ ₱{annualMonthlyCost}/month — pay less, stress less
                     </p>
                   )}
                   {referralApplied && (
                     <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{ background: "#E8F7EE", color: "#1ca560", border: "1px solid #A8D8BA" }}>
-                      <Gift size={9} /> Referral: -₱{(regularPrice - activePrice).toLocaleString()} off
+                      style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
+                      <Gift size={9} /> -₱100 first month only
                     </div>
                   )}
                 </button>
@@ -384,13 +383,13 @@ export default function PaywallPage() {
             </div>
             <div className="flex-1">
               <p className="font-black text-sm" style={{ color: "#111A24" }}>
-                📣 Refer a colleague — earn free months of Pro
+                📣 Refer a colleague — earn ₱100 off your own subscription
               </p>
               <p className="text-xs mt-0.5" style={{ color: "#8898AC" }}>
-                Share your personal referral code. For every teacher who pays using it, you earn free time.
+                Share your personal referral code. For every teacher who pays using it, you get ₱100 off one month of your own plan.
               </p>
             </div>
-            <span className="text-xs font-bold" style={{ color: "#1ca560" }}>
+            <span className="text-xs font-bold" style={{ color: "#003876" }}>
               {showReferralRewards ? "Hide ▲" : "Learn more ▼"}
             </span>
           </button>
@@ -404,22 +403,25 @@ export default function PaywallPage() {
                 boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.07)"
               }}
             >
-              <p className="text-sm font-black mb-4" style={{ color: "#111A24" }}>
-                How referrals work
+              <p className="text-sm font-black mb-1" style={{ color: "#111A24" }}>
+                How referral rewards work
+              </p>
+              <p className="text-xs mb-4" style={{ color: "#8898AC" }}>
+                Each paid referral earns you <strong style={{ color: "#003876" }}>₱100 off</strong> your next month's subscription — the same first-month discount your referee received. One referral = one discounted month.
               </p>
               <div className="space-y-3 mb-4">
                 {REFERRAL_REWARDS.map(({ referrals, reward }) => (
                   <div key={referrals} className="flex items-center gap-3 rounded-lg p-3"
                     style={{ background: "#F4F7FC", border: "1px solid #DDE4EE" }}>
                     <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-sm shrink-0"
-                      style={{ background: "linear-gradient(180deg, #22B868, #179050)", color: "#FFF", border: "1px solid #148044" }}>
+                      style={{ background: "linear-gradient(180deg, #E30A24, #B5081C)", color: "#FFF", border: "1px solid #8A0615" }}>
                       {referrals}
                     </div>
                     <div>
                       <p className="text-xs font-black" style={{ color: "#111A24" }}>
                         {referrals} paid referral{referrals > 1 ? "s" : ""}
                       </p>
-                      <p className="text-xs" style={{ color: "#1ca560", fontWeight: 600 }}>→ {reward}</p>
+                      <p className="text-xs" style={{ color: "#003876", fontWeight: 600 }}>→ {reward}</p>
                     </div>
                   </div>
                 ))}

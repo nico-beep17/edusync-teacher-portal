@@ -121,7 +121,7 @@ export function AIAssistant() {
       // Bold
       line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       // Inline code
-      line = line.replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-xs font-mono text-emerald-700">$1</code>')
+      line = line.replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-xs font-mono text-blue-700">$1</code>')
       // Emoji lines get extra spacing
       if (line.trim() === '') return <br key={i} />
       return <p key={i} className="mb-1" dangerouslySetInnerHTML={{ __html: line }} />
@@ -136,7 +136,7 @@ export function AIAssistant() {
         className={`fixed bottom-6 right-6 z-50 flex items-center justify-center h-14 w-14 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 ${
           isOpen 
             ? 'bg-slate-700 hover:bg-slate-800 rotate-0' 
-            : 'bg-gradient-to-br from-[#1ca560] to-emerald-600 hover:from-emerald-600 hover:to-emerald-700'
+            : 'bg-gradient-to-br from-[#003876] to-blue-600 hover:from-blue-600 hover:to-blue-700'
         }`}
       >
         {isOpen ? (
@@ -153,13 +153,13 @@ export function AIAssistant() {
       {isOpen && (
         <div className="fixed bottom-24 right-6 z-50 w-[380px] max-h-[520px] bg-white rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#1ca560] to-emerald-600 text-white shrink-0">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-[#003876] to-blue-600 text-white shrink-0">
             <div className="h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <Sparkles size={18} className="text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-sm leading-tight">DepAid AI Assistant</h3>
-              <p className="text-[10px] text-emerald-100 font-medium">Always here to help • Offline Ready</p>
+              <p className="text-[10px] text-blue-100 font-medium">Always here to help • Offline Ready</p>
             </div>
             <button onClick={() => setIsOpen(false)} className="p-1 rounded-full hover:bg-white/20 transition-colors">
               <X size={16} />
@@ -172,7 +172,7 @@ export function AIAssistant() {
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-[#1ca560] text-white rounded-br-md' 
+                    ? 'bg-[#E3001B] text-white rounded-br-md' 
                     : 'bg-slate-100 text-slate-700 rounded-bl-md border border-slate-200/60'
                 }`}>
                   {msg.role === 'assistant' ? renderContent(msg.content) : msg.content}
@@ -200,7 +200,7 @@ export function AIAssistant() {
                 <button
                   key={i}
                   onClick={() => sendMessage(action.label)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-[#1ca560] transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-[#003876] transition-colors"
                 >
                   <action.icon size={12} />
                   {action.label}
@@ -216,13 +216,13 @@ export function AIAssistant() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me anything..."
-              className="flex-1 text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#1ca560] focus:ring-1 focus:ring-[#1ca560] transition-colors"
+              className="flex-1 text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#003876] focus:ring-1 focus:ring-[#003876] transition-colors"
               disabled={isTyping}
             />
             <button
               type="submit"
               disabled={!input.trim() || isTyping}
-              className="flex items-center justify-center h-9 w-9 rounded-lg bg-[#1ca560] text-white hover:bg-[#158045] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 shrink-0"
+              className="flex items-center justify-center h-9 w-9 rounded-lg bg-[#E3001B] text-white hover:bg-[#B30015] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 shrink-0"
             >
               <Send size={15} />
             </button>

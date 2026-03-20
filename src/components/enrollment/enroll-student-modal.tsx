@@ -28,7 +28,9 @@ export function EnrollStudentModal() {
   const [form, setForm] = useState({
     lrn: "",
     firstName: "",
+    middleName: "",
     lastName: "",
+    suffix: "",
     sex: "M"
   })
 
@@ -38,15 +40,19 @@ export function EnrollStudentModal() {
     e.preventDefault()
     if (!form.lrn || !form.firstName || !form.lastName) return
 
+    const mInitial = form.middleName ? ` ${form.middleName.charAt(0).toUpperCase()}.` : ""
+    const suffixStr = form.suffix ? ` ${form.suffix.toUpperCase()}` : ""
+    const fullName = `${form.lastName.toUpperCase()}, ${form.firstName.toUpperCase()}${mInitial}${suffixStr}`
+
     addStudent({
       lrn: form.lrn,
-      name: `${form.lastName.toUpperCase()}, ${form.firstName.toUpperCase()}`,
+      name: fullName,
       sex: form.sex as 'M' | 'F',
       status: 'ENROLLED'
     })
 
     setOpen(false) // Close modal
-    setForm({ lrn: "", firstName: "", lastName: "", sex: "M" }) // Reset
+    setForm({ lrn: "", firstName: "", middleName: "", lastName: "", suffix: "", sex: "M" }) // Reset
     setActiveTab('manual')
     setScanSuccess(false)
   }
@@ -84,17 +90,30 @@ export function EnrollStudentModal() {
         setIsScanning(false)
         setScanSuccess(true)
         
-        // Populate standard form
-        setForm({
-            lrn: data.lrn || "NO LRN SCANNED",
-            firstName: data.firstName || "Unknown",
-            lastName: data.lastName || "Unknown",
-            sex: (data.sex === 'M' || data.sex === 'F') ? data.sex : "M"
-        })
+        let validStudents = 0
+        
+        if (data.students && Array.isArray(data.students)) {
+             data.students.forEach((st: any) => {
+                 const newLrn = st.lrn || String(Math.floor(Math.random() * 900000000000) + 100000000000)
+                 const mInitial = st.middleName ? ` ${st.middleName.charAt(0).toUpperCase()}.` : ""
+                 const suffixStr = st.suffix ? ` ${st.suffix.toUpperCase()}` : ""
+                 const formattedName = `${st.lastName ? st.lastName.toUpperCase() : 'UNKNOWN'}, ${st.firstName ? st.firstName.toUpperCase() : 'UNKNOWN'}${mInitial}${suffixStr}`
+                 
+                 const sex = (st.sex === 'M' || st.sex === 'F') ? st.sex : "M"
+                 addStudent({ lrn: newLrn, name: formattedName, sex, status: 'ENROLLED' })
+                 validStudents++
+             })
+        }
         
         setTimeout(() => {
-            setActiveTab('manual')
             setScanSuccess(false)
+            if (validStudents > 0) {
+               alert(`AI OCR Successfully extracted and enrolled ${validStudents} student(s) into the masterlist!`)
+               setOpen(false)
+            } else {
+               alert(`AI could not identify clear student data from the image.`)
+            }
+            setActiveTab('manual')
         }, 1200)
 
       } catch (error) {
@@ -137,8 +156,8 @@ export function EnrollStudentModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
-        <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-[#1ca560] hover:bg-[#158045] text-white shadow-lg shadow-emerald-500/20">
-            <UserPlus className="mr-2 h-4 w-4" /> Enroll Student (Form 138)
+        <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-[#E3001B] hover:bg-[#B30015] text-white shadow-lg shadow-blue-500/20">
+            <UserPlus className="mr-2 h-4 w-4" /> Enroll Student(s)
         </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[550px] bg-white/95 backdrop-blur-xl border border-white">
@@ -158,7 +177,7 @@ export function EnrollStudentModal() {
            </button>
            <button 
              onClick={() => setActiveTab('ai')}
-             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ai' ? 'bg-white shadow text-[#1ca560]' : 'text-slate-500 hover:text-slate-700'}`}>
+             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ai' ? 'bg-white shadow text-[#003876]' : 'text-slate-500 hover:text-slate-700'}`}>
              <Wand2 className="h-3 w-3" /> AI Scan
            </button>
            <button 
@@ -179,8 +198,16 @@ export function EnrollStudentModal() {
               <Input id="firstName" value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Juan" className="col-span-3 bg-white" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="middleName" className="text-right">Middle Name</Label>
+              <Input id="middleName" value={form.middleName} onChange={e => setForm({...form, middleName: e.target.value})} placeholder="Santos (Optional)" className="col-span-3 bg-white" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="lastName" className="text-right">Last Name</Label>
               <Input id="lastName" value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Dela Cruz" className="col-span-3 bg-white" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="suffix" className="text-right">Suffix</Label>
+              <Input id="suffix" value={form.suffix} onChange={e => setForm({...form, suffix: e.target.value})} placeholder="Jr., III (Optional)" className="col-span-3 bg-white" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="sex" className="text-right">Sex</Label>
@@ -209,15 +236,15 @@ export function EnrollStudentModal() {
                 </div>
              ) : scanSuccess ? (
                 <div className="flex flex-col items-center justify-center animate-in slide-in-from-bottom flex-in duration-500">
-                    <div className="h-16 w-16 bg-emerald-100 text-[#1ca560] rounded-full flex items-center justify-center mb-4">
+                    <div className="h-16 w-16 bg-blue-100 text-[#003876] rounded-full flex items-center justify-center mb-4">
                        <CheckCircle2 size={32} />
                     </div>
-                    <p className="font-semibold text-emerald-700 text-center mb-1">Extraction Complete!</p>
+                    <p className="font-semibold text-blue-700 text-center mb-1">Extraction Complete!</p>
                     <p className="text-sm text-slate-500 text-center max-w-[280px]">Redirecting to finalize Form 138 data...</p>
                 </div>
              ) : (
                 <div className="flex flex-col items-center justify-center animate-in fade-in duration-500">
-                    <div className="h-16 w-16 bg-emerald-100 text-[#1ca560] rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <div className="h-16 w-16 bg-blue-100 text-[#003876] rounded-full flex items-center justify-center mb-4 shadow-inner">
                         <UploadCloud size={28} />
                     </div>
                     <p className="font-semibold text-slate-800 text-center mb-1">Upload exactly as printed</p>
@@ -225,8 +252,8 @@ export function EnrollStudentModal() {
                         Upload a scan or photo of DepEd Form 138. The GPT-4o Vision Engine will safely read and structure the data.
                     </p>
                     <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                    <Button onClick={handleUploadClick} variant="outline" className="bg-white border-emerald-200 text-[#1ca560] hover:bg-emerald-50 shadow-sm relative overflow-hidden group">
-                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-emerald-100/50 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite]"></span>
+                    <Button onClick={handleUploadClick} variant="outline" className="bg-white border-blue-200 text-[#003876] hover:bg-blue-50 shadow-sm relative overflow-hidden group">
+                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-blue-100/50 to-transparent -translate-x-[150%] animate-[shimmer_2s_infinite]"></span>
                         <Wand2 className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
                         Choose Photo to Scan
                     </Button>
@@ -255,7 +282,7 @@ export function EnrollStudentModal() {
 
         <DialogFooter className="pt-2 border-t mt-2">
           {activeTab === 'manual' && (
-            <Button onClick={handleSubmit} className="w-full bg-[#1ca560] hover:bg-[#158045]">Complete Enrollment</Button>
+            <Button onClick={handleSubmit} className="w-full bg-[#E3001B] hover:bg-[#B30015]">Complete Enrollment</Button>
           )}
           {activeTab === 'ai' && (
              <Button type="button" disabled className="w-full bg-slate-200/60 text-slate-400">
