@@ -137,9 +137,10 @@ export function EnrollStudentModal() {
         if (cols.length >= 3) {
             const lrn = cols[0].trim()
             const name = cols[1].trim()
-            const sex = cols[2].trim().toUpperCase()
+            const sexRaw = cols[2].trim().toUpperCase()
+            const sex = sexRaw.startsWith('M') ? 'M' : sexRaw.startsWith('F') ? 'F' : null
             
-            if (lrn && name && (sex === 'M' || sex === 'F')) {
+            if (lrn && name && sex) {
                 addStudent({
                     lrn, name, sex: sex as 'M' | 'F', status: 'ENROLLED'
                 })

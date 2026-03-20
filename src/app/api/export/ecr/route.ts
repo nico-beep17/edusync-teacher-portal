@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 
 export async function POST(req: Request) {
   try {
-    const { subject, students } = await req.json();
+    const { subject, students, schoolInfo } = await req.json();
 
     // In a full production mapping, we would dynamically select the template based on subject/grade.
     // For this prototype, we use the FIL 8 ARIES ECR template as the unified format.
@@ -46,10 +46,10 @@ export async function POST(req: Request) {
         sheet.getCell(`B${currentRow}`).value = student.name; 
         
         // Blank cells instead of 0s to preserve pristine spreadsheet look
-        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || ""; 
-        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || ""; 
-        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || ""; 
-        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || ""; 
+        sheet.getCell(`F${currentRow}`).value = student.scores.ww_0 || ""; 
+        sheet.getCell(`G${currentRow}`).value = student.scores.ww_1 || ""; 
+        sheet.getCell(`T${currentRow}`).value = student.scores.pt_0 || ""; 
+        sheet.getCell(`U${currentRow}`).value = student.scores.pt_1 || ""; 
         sheet.getCell(`AH${currentRow}`).value = student.scores.qa || ""; 
 
         currentRow++;
@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     females.forEach((student: any) => {
         sheet.getCell(`B${currentRow}`).value = student.name;
         
-        sheet.getCell(`F${currentRow}`).value = student.scores.ww1 || ""; 
-        sheet.getCell(`G${currentRow}`).value = student.scores.ww2 || ""; 
-        sheet.getCell(`T${currentRow}`).value = student.scores.pt1 || ""; 
-        sheet.getCell(`U${currentRow}`).value = student.scores.pt2 || ""; 
+        sheet.getCell(`F${currentRow}`).value = student.scores.ww_0 || ""; 
+        sheet.getCell(`G${currentRow}`).value = student.scores.ww_1 || ""; 
+        sheet.getCell(`T${currentRow}`).value = student.scores.pt_0 || ""; 
+        sheet.getCell(`U${currentRow}`).value = student.scores.pt_1 || ""; 
         sheet.getCell(`AH${currentRow}`).value = student.scores.qa || ""; 
         
         currentRow++;
@@ -82,11 +82,12 @@ export async function POST(req: Request) {
     // Generate output buffer
     const buffer = await workbook.xlsx.writeBuffer();
 
+    const sanitizedName = (schoolInfo?.section || 'Class').replace(/\s/g, '_');
     return new NextResponse(buffer, {
        status: 200,
        headers: {
            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-           'Content-Disposition': `attachment; filename="Generated_ECR_${subject}_Q1.xlsx"`
+           'Content-Disposition': `attachment; filename="Generated_ECR_${subject}_Q1_${sanitizedName}.xlsx"`
        }
     });
 

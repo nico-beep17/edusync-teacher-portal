@@ -206,6 +206,7 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
   const updateGrade = useTeacherStore(s => s.updateGrade)
   const globalStudents = useTeacherStore(s => s.students)
   const globalGrades = useTeacherStore(s => s.grades)
+  const schoolInfo = useTeacherStore(s => s.schoolInfo)
 
   useEffect(() => {
     // ── Auto-populate from global store if students exist ──
@@ -318,13 +319,14 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
       const res = await fetch('/api/export/ecr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: subjectName, students })
+        body: JSON.stringify({ subject: subjectName, students, schoolInfo, hps: { ww: hpsWW, pt: hpsPT, qa: hpsQA } })
       })
       if (!res.ok) throw new Error("Template mapping failed.")
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = `${subjectName}_ECR_Q1.xlsx`; a.click()
+      const sanitizedName = (schoolInfo?.section || 'Class').replace(/\s/g, '_')
+      a.href = url; a.download = `${subjectName}_ECR_Q1_${sanitizedName}.xlsx`; a.click()
       window.URL.revokeObjectURL(url)
     } catch (err: any) {
       alert("Export: " + err.message)

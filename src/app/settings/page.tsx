@@ -94,6 +94,14 @@ export default function SettingsPage() {
   }
 
   const handleSave = () => {
+    // Math guardrail for grade integrity
+    for (const sub of subjects) {
+        if (sub.wwWeight + sub.ptWeight + sub.qaWeight !== 100) {
+            alert(`Validation Error: Grading weights for "${sub.name || 'Subject'}" must exactly equal 100%. Please adjust before saving.`)
+            return
+        }
+    }
+    
     localStorage.setItem('depaid-subjects', JSON.stringify(subjects))
     setGlobalSchoolInfo(schoolInfo)
     setSaved(true)
