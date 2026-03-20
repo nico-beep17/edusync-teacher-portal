@@ -146,6 +146,7 @@ export default function AttendancePage() {
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [sf2ModalOpen, setSf2ModalOpen] = useState(false)
+  const [exportConfirmOpen, setExportConfirmOpen] = useState(false)
   const [sf2Summary, setSf2Summary] = useState({
     lateEnrollmentM: 0, lateEnrollmentF: 0,
     dropOutM: 0, dropOutF: 0,
@@ -312,6 +313,24 @@ export default function AttendancePage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  const handleSF2Click = () => {
+    const existing = useTeacherStore.getState().sf2Summaries[exportMonth]
+    if (!existing) {
+      // First time compiling for this month, prompt immediately
+      setSf2Summary({
+        lateEnrollmentM: 0, lateEnrollmentF: 0,
+        dropOutM: 0, dropOutF: 0,
+        transferredOutM: 0, transferredOutF: 0,
+        transferredInM: 0, transferredInF: 0,
+      })
+      setSf2ModalOpen(true)
+    } else {
+      // Already has data, just show reminder
+      setSf2Summary(existing)
+      setExportConfirmOpen(true)
+    }
+  }
+
   const handleExport = async (formCode: 'sf2' | 'sf4', summaryOverride?: any) => {
     setExporting(true)
     try {
@@ -376,9 +395,10 @@ export default function AttendancePage() {
           {/* Mark all present */}
           <button
             onClick={handleMarkAllPresent}
-            className="skeu-btn-ghost h-9 px-3 rounded-lg text-sm"
+            className="skeu-btn-ghost h-9 px-3 rounded-lg text-sm text-slate-600 hover:text-green-700"
+            title="Mark all students present today"
           >
-            ✓ Mark All Present
+            ✓ All Present
           </button>
 
           {/* Month picker for export */}
@@ -394,21 +414,13 @@ export default function AttendancePage() {
               />
             </div>
             <button
-              onClick={() => setSf2ModalOpen(true)}
+              onClick={handleSF2Click}
               disabled={exporting || globalStudents.length === 0}
-              className="h-9 px-3 text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 border-r border-[#8A0615]"
+              className="h-9 px-4 text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
               style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
             >
-              <FileDown size={13} />
-              SF2
-            </button>
-            <button
-              disabled
-              title="Coming Soon"
-              className="h-9 px-3 text-sm font-bold flex items-center gap-1.5 transition-all rounded-lg opacity-50 cursor-not-allowed"
-              style={{ background: 'linear-gradient(180deg, #888, #666)', color: '#FFF' }}
-            >
-              SF4
+              <FileDown size={14} />
+              Generate SF2
             </button>
           </div>
 
@@ -430,28 +442,7 @@ export default function AttendancePage() {
         </div>
       )}
 
-      {/* PIN lock notice */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm"
-        style={{
-          background: "linear-gradient(160deg, #FFFBF2 0%, #FFF7E6 100%)",
-          border: "1px solid #E8C878",
-          boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 5px rgba(0,0,0,0.05)"
-        }}
-      >
-        <div className="flex items-center justify-center h-7 w-7 rounded-lg shrink-0" style={{ background: "#FFF0CC", border: "1px solid #E8C878" }}>
-          <Lock size={14} style={{ color: "#D08010" }} />
-        </div>
-        <div>
-          <p className="font-bold text-sm" style={{ color: "#2A1A0E" }}>
-            Past-date attendance is locked
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "#8A6828" }}>
-            Only <strong>today&apos;s</strong> column is editable. Clicking a past date requires your <strong>Teacher PIN</strong> to prevent student tampering.
-            {unlockedDates.size > 0 && <span className="text-[#003876]"> ({unlockedDates.size} date{unlockedDates.size !== 1 ? 's' : ''} unlocked this session)</span>}
-          </p>
-        </div>
-      </div>
+      {/* PIN unlock notice removed for decluttering */}
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
@@ -539,12 +530,47 @@ export default function AttendancePage() {
         </CardContent>
       </Card>
 
+      {/* SF2 Export Confirm Modal */}
+      <Dialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Generate SF2</DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Reminder: Are your Monthly Summary details (Drop-outs, Transferees) for {exportMonth} up to date?
+            </p>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            <button
+              onClick={() => {
+                setExportConfirmOpen(false)
+                handleExport('sf2', sf2Summary)
+              }}
+              disabled={exporting}
+              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
+            >
+              <FileDown size={14} />
+              Yes, Generate SF2 Now
+            </button>
+            <button
+              onClick={() => {
+                setExportConfirmOpen(false)
+                setSf2ModalOpen(true)
+              }}
+              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-slate-700 bg-slate-100 hover:bg-slate-200"
+            >
+              No, Update Summary First
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* SF2 Summary Modal */}
       <Dialog open={sf2ModalOpen} onOpenChange={setSf2ModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>SF2 Monthly Summary</DialogTitle>
-            <p className="text-sm text-slate-500 mt-1">Fill in details before exporting. Auto-computed fields are calculated from your attendance data.</p>
+            <DialogTitle>SF2 Monthly Summary: {exportMonth}</DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">Fill in details for this month before exporting. Auto-computed fields are calculated from your attendance data.</p>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {[
@@ -578,13 +604,17 @@ export default function AttendancePage() {
               </div>
             ))}
             <button
-              onClick={() => { setSf2ModalOpen(false); handleExport('sf2', sf2Summary) }}
+              onClick={() => {
+                useTeacherStore.getState().setSf2Summary(exportMonth, sf2Summary)
+                setSf2ModalOpen(false)
+                handleExport('sf2', sf2Summary)
+              }}
               disabled={exporting}
               className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
             >
               <FileDown size={14} />
-              {exporting ? 'Generating...' : 'Export SF2'}
+              {exporting ? 'Generating...' : 'Save & Export SF2'}
             </button>
           </div>
         </DialogContent>

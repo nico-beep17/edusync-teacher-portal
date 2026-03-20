@@ -64,6 +64,12 @@ interface TeacherState {
     adviserName: string
     schoolHeadName: string
   }
+  sf2Summaries: Record<string, {
+    lateEnrollmentM: number, lateEnrollmentF: number,
+    dropOutM: number, dropOutF: number,
+    transferredOutM: number, transferredOutF: number,
+    transferredInM: number, transferredInF: number,
+  }>
 
   // Actions
   addStudent: (student: Student) => void
@@ -80,6 +86,7 @@ interface TeacherState {
   pushToCloud: () => Promise<void>
   setUser: (user: any) => void
   setSchoolInfo: (info: any) => void
+  setSf2Summary: (month: string, summary: any) => void
 }
 
 export const useTeacherStore = create<TeacherState>()(
@@ -102,6 +109,10 @@ export const useTeacherStore = create<TeacherState>()(
         schoolHeadName: "MYRNA EVANGELISTA PURIFICACION"
       },
       setSchoolInfo: (info: any) => set({ schoolInfo: info }),
+      sf2Summaries: {},
+      setSf2Summary: (month: string, summary: any) => set((state) => ({
+        sf2Summaries: { ...state.sf2Summaries, [month]: summary }
+      })),
       books: {},
       students: [
         { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
