@@ -13,7 +13,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const setUser = useTeacherStore((s) => s.setUser)
-  const isFullScreenPage = pathname === "/login" || pathname === "/register" || pathname === "/paywall"
+  const isFullScreenPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/paywall"
 
   const [checking, setChecking] = useState(!isFullScreenPage)
 
@@ -30,6 +30,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
        const { data: { session } } = await supabase.auth.getSession()
        
        if (!session) {
+           const devUser = useTeacherStore.getState().user
+           if (devUser?.isDev) { setChecking(false); return }
            router.push('/login')
        } else {
            setUser(session.user)

@@ -9,7 +9,7 @@ import { useTeacherStore } from "@/store/useStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const pageTitles: Record<string, string> = {
-  "/": "Advisory Dashboard",
+  "/dashboard": "Advisory Dashboard",
   "/attendance": "SF2 Daily Attendance",
   "/composite": "Composite Grades",
   "/sf3": "SF3 Book Issuance",
@@ -139,7 +139,7 @@ export function Topbar() {
               {searchResults.map(s => (
                 <Link
                   key={s.lrn}
-                  href="/"
+                  href="/dashboard"
                   onClick={() => { setSearchQuery(""); setShowResults(false) }}
                   className="flex items-center gap-3 px-3 py-2.5 border-b last:border-0 transition-colors"
                   style={{ borderColor: "#EEF2F8" }}

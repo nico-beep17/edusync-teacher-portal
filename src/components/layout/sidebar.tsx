@@ -10,7 +10,7 @@ import {
 
 const navItems = [
   { label: "ADVISORY", type: "header" as const },
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, description: "Overview & masterlist" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Overview & masterlist" },
   { href: "/attendance", label: "Attendance (SF2)", icon: ClipboardCheck, description: "Daily attendance & QR" },
   { href: "/composite", label: "Composite Grades", icon: BarChart3, description: "Collect & aggregate" },
   { href: "/sf3", label: "Books Issued (SF3)", icon: Book, description: "Book inventory" },
@@ -31,7 +31,7 @@ export function Sidebar() {
   if (["/login", "/register", "/paywall"].includes(pathname)) return null
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href)
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href)
 
   const sidebarContent = (
     <div className="flex flex-col h-full">

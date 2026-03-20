@@ -81,7 +81,7 @@ export default function PaywallPage() {
     setLoading(true)
     setTimeout(() => {
       alert(`Payment gateway coming soon!\nPlan: Pro ${selected === "monthly" ? "Monthly" : "Annual"}\nPrice: ₱${price.toLocaleString()}${referralApplied ? ` (referral applied: -₱${savings})` : ''}\n\nEnjoy full access! 🎉`)
-      router.push("/")
+      router.push("/dashboard")
     }, 1000)
   }
 
@@ -358,7 +358,7 @@ export default function PaywallPage() {
             }
           </button>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/dashboard")}
             className="text-xs font-medium underline underline-offset-2"
             style={{ color: "#8898AC" }}
           >

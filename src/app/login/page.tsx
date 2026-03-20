@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { useTeacherStore } from "@/store/useStore"
+import { Loader2, Eye, EyeOff, Code } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,6 +15,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+
+  const setUser = useTeacherStore((s) => s.setUser)
+
+  const handleDevLogin = () => {
+    setUser({ email: 'dev@depaid.test', user_metadata: { full_name: 'Developer Mode', avatar_url: '' }, isDev: true })
+    router.push('/dashboard')
+  }
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -92,6 +100,15 @@ export default function LoginPage() {
                 <span>⚠️</span> <span style={{ color: "#C03030" }}>{error}</span>
               </div>
             )}
+
+            {/* Dev Login */}
+            <button
+              onClick={handleDevLogin}
+              className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-sm transition-all"
+            >
+              <Code size={16} />
+              Developer Bypass for Testing
+            </button>
 
             {/* Google OAuth Button */}
             <button

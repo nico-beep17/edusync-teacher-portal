@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, Sparkles, ChevronDown, Lightbulb, BookOpen, HelpCircle } from "lucide-react"
+import { useTeacherStore } from "@/store/useStore"
 
 interface Message {
   id: string
@@ -34,25 +35,52 @@ const KNOWLEDGE_BASE: Record<string, string> = {
   "default": `I'm your DepAid AI Assistant! I can help you with:\n\n📚 **Enrollment** — Adding students manually, via AI scan, or CSV bulk upload\n📝 **Grading** — E-Class Records, grade computation, and submission\n📋 **Attendance** — SF2 daily attendance, QR scanning\n📊 **Reports** — Composite grades, SF5 promotion reports\n🔧 **Settings** — Managing subjects, weights, and school info\n\nWhat would you like to know?`
 }
 
-function getAIResponse(userMessage: string): string {
+function getAIResponse(userMessage: string, state: any): string {
   const msg = userMessage.toLowerCase()
-  
+  const { students, grades, attendance } = state
+
+  if (msg.includes("failing") || msg.includes("fail") || msg.includes("risk")) {
+    const failing: string[] = []
+    students.forEach((s: any) => {
+      const sGrades = grades[s.lrn] || []
+      const failed = sGrades.filter((g: any) => g.quarterGrade > 0 && g.quarterGrade < 75)
+      if (failed.length > 0) failing.push(`- **${s.name}** (${failed.map((f:any) => f.subject).join(', ')})`)
+    })
+    if (failing.length > 0) return `🚨 **Intervention Alert!** Here are the students currently failing:\n\n${failing.join('\n')}\n\nYou can issue an active Learning Intervention plan on their dashboard.`
+    return `✅ Great news! **Zero students** are currently failing across recorded subjects.`
+  }
+
+  if (msg.includes("absent") || msg.includes("truant") || msg.includes("absences")) {
+    const excessive: string[] = []
+    students.forEach((s: any) => {
+      const att = attendance[s.lrn] || []
+      const absences = att.filter((a: any) => a.status === 'A').length
+      if (absences >= 2) excessive.push(`- **${s.name}**: ${absences} absences`)
+    })
+    if (excessive.length > 0) return `⚠️ **Truancy Check!** These students have excessive absences:\n\n${excessive.join('\n')}\n\nPlease check their specific SF2 records.`
+    return `✅ Currently, **no students** have 2 or more absences. Excellent class attendance!`
+  }
+
+  if (msg.includes("average") || msg.includes("top") || msg.includes("best") || msg.includes("honor")) {
+    return `🏆 **Honor Roll Analysis:** The system is tracking ${students.length} students. Those with a composite general average of **90 or above** are candidates for Academic Excellence. Head to your **Composite Grades** page to view the full ranking and finalize the Q1 results.`
+  }
+
   if (msg.includes("enroll") || msg.includes("student") || msg.includes("add student") || msg.includes("form 138") || msg.includes("csv")) {
     return KNOWLEDGE_BASE["enroll"]
   }
   if (msg.includes("grade") || msg.includes("submit") || msg.includes("transmit") || msg.includes("ecr") || msg.includes("score")) {
     return KNOWLEDGE_BASE["grade"]
   }
-  if (msg.includes("sf2") || msg.includes("attendance") || msg.includes("absent") || msg.includes("present") || msg.includes("qr")) {
+  if (msg.includes("sf2") || msg.includes("attendance") || msg.includes("qr")) {
     return KNOWLEDGE_BASE["sf2"]
   }
   if (msg.includes("tip") || msg.includes("fast") || msg.includes("quick") || msg.includes("help") || msg.includes("how")) {
     return KNOWLEDGE_BASE["tips"]
   }
-  if (msg.includes("composite") || msg.includes("aggregate") || msg.includes("form 138") || msg.includes("adviser")) {
+  if (msg.includes("composite") || msg.includes("aggregate") || msg.includes("adviser")) {
     return KNOWLEDGE_BASE["composite"]
   }
-  if (msg.includes("sf5") || msg.includes("promot") || msg.includes("retain") || msg.includes("pass") || msg.includes("fail")) {
+  if (msg.includes("sf5") || msg.includes("promot") || msg.includes("retain") || msg.includes("pass")) {
     return KNOWLEDGE_BASE["sf5"]
   }
   
@@ -98,7 +126,8 @@ export function AIAssistant() {
 
     // Simulate AI thinking delay
     setTimeout(() => {
-      const response = getAIResponse(text)
+      const state = useTeacherStore.getState()
+      const response = getAIResponse(text, state)
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
