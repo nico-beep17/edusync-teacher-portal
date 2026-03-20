@@ -109,7 +109,7 @@ export default function RegisterPage() {
           <div className="h-12 w-12 rounded-xl overflow-hidden mb-3" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 14px rgba(0,0,0,0.12)", border: "1px solid #D4DCE6" }}>
             <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
           </div>
-          <h1 className="text-xl font-black tracking-tight" style={{ color: "#111A24" }}>DepAid</h1>
+          <h1 className="text-xl font-black tracking-tight" style={{ color: "#111A24" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></h1>
           <div className="flex items-center gap-1.5 mt-1">
             <div className="skeu-led-green" style={{ width: 5, height: 5 }} />
             <span className="skeu-label" style={{ fontSize: "0.6rem" }}>New Account Registration</span>

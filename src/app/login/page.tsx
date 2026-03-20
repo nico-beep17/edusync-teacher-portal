@@ -87,10 +87,10 @@ export default function LoginPage() {
               <div className="h-16 w-16 rounded-2xl overflow-hidden mb-4" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 18px rgba(0,0,0,0.14)", border: "1px solid #D4DCE6" }}>
                 <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
               </div>
-              <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>DepAid</h1>
+              <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></h1>
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="skeu-led-green" style={{ width: 6, height: 6 }} />
-                <span className="skeu-label" style={{ fontSize: "0.6rem", letterSpacing: "0.18em" }}>Teacher Portal System</span>
+                <span className="skeu-label" style={{ fontSize: "0.6rem", letterSpacing: "0.18em" }}>SUPPORT • FOCUS • INSPIRE</span>
               </div>
             </div>
 

@@ -12,7 +12,7 @@ export default function LandingPage() {
             <div className="h-8 w-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
               <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
             </div>
-            <span className="text-xl font-black tracking-tight text-[#111A24]">DepAid</span>
+            <span className="text-xl font-black tracking-tight text-[#111A24]">Dep<span className="text-[#B5081C]">Aid</span></span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-[#003876] transition-colors">
