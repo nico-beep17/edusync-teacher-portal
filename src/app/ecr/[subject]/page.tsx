@@ -239,7 +239,14 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
   const handleScoreChange = (lrn: string, field: string, value: string) => {
     const numValue = value === '' ? 0 : parseInt(value)
     if (isNaN(numValue)) return
-    setStudents(prev => prev.map(s => s.lrn === lrn ? { ...s, scores: { ...s.scores, [field]: numValue } } : s))
+    
+    const maxScore = hps[field] || 0
+    let finalValue = numValue
+    if (numValue > maxScore && maxScore > 0) {
+       finalValue = maxScore
+    }
+
+    setStudents(prev => prev.map(s => s.lrn === lrn ? { ...s, scores: { ...s.scores, [field]: finalValue } } : s))
   }
 
   const handleHpsChange = (field: string, value: string) => {

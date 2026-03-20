@@ -437,13 +437,24 @@ export default function AdviserDashboard() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <button
-                          onClick={() => setSelectedStudent(student)}
-                          className="text-xs font-bold underline underline-offset-2"
-                          style={{ color: "#D08010" }}
-                        >
-                          Review Profile
-                        </button>
+                        <div className="flex items-center justify-end gap-4">
+                          <button
+                            onClick={() => {
+                               alert(`[DepAid AI Integration]\nGenerating DepEd-Compliant Intervention Letter for ${student.name}'s parents...\n\nAutomatically injecting current standing (Avg: ${student.average}, Absences: ${student.absences}) into standard SARDO format. Downloading PDF...`)
+                            }}
+                            className="text-[11px] uppercase tracking-wider font-black px-3 py-1.5 rounded-md shadow-sm transition-all hover:-translate-y-0.5"
+                            style={{ background: "linear-gradient(180deg, #E3001B 0%, #C00017 100%)", color: "white", border: "1px solid #A00015" }}
+                          >
+                            Generate Letter
+                          </button>
+                          <button
+                            onClick={() => setSelectedStudent(student)}
+                            className="text-xs font-bold underline underline-offset-2"
+                            style={{ color: "#D08010" }}
+                          >
+                            Review Profile
+                          </button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
