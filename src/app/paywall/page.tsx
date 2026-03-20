@@ -99,7 +99,7 @@ export default function PaywallPage() {
         {/* Topbar */}
         <div className="flex items-center gap-3 mb-10">
           <div className="h-9 w-9 rounded-xl overflow-hidden" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 8px rgba(0,0,0,0.1)", border: "1px solid #D4DCE6" }}>
-            <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-contain p-0.5" />
+            <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain p-0.5" />
           </div>
           <span className="font-black text-lg" style={{ color: "#111A24" }}>DepAid</span>
           <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md skeu-badge-green text-[10px] font-bold uppercase tracking-widest">

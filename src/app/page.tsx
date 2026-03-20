@@ -10,7 +10,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-              <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-contain p-0.5" />
+              <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain p-0.5" />
             </div>
             <span className="text-xl font-black tracking-tight text-[#111A24]">DepAid</span>
           </div>
@@ -145,7 +145,7 @@ export default function LandingPage() {
 
       {/* Footer CTA */}
       <section className="py-24 bg-[#003876] relative overflow-hidden text-center">
-        <div className="absolute inset-0 bg-[url('/depaid-logo-v2.svg')] opacity-5 bg-center bg-no-repeat bg-cover grayscale" />
+        <div className="absolute inset-0 bg-[url('/depaid-logo.png')] opacity-5 bg-center bg-no-repeat bg-cover grayscale" />
         <div className="max-w-2xl mx-auto px-6 relative z-10">
           <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Ready to digitize your classroom?</h2>
           <p className="text-blue-200 mb-10 text-lg">Join forward-thinking educators embracing modern technology and zero paperwork.</p>
