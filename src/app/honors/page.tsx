@@ -10,7 +10,7 @@ export default function HonorRollPage() {
   const gradesMap = useTeacherStore(s => s.grades)
   const schoolInfo = useTeacherStore(s => s.schoolInfo)
 
-  const [certStudent, setCertStudent] = useState<any>(null)
+  const [certList, setCertList] = useState<any[]>([])
   
   // Calculate averages and awards
   const rankedStudents = students.map(s => {
@@ -65,63 +65,72 @@ export default function HonorRollPage() {
         }
       `}} />
 
-      {certStudent && (
-        <div id="print-certificate" className="hidden print:flex flex-col items-center justify-center min-h-screen text-center p-12 relative overflow-hidden bg-white" style={{ fontFamily: "serif" }}>
-          
-          {/* Ornate Border Elements */}
-          <div className="absolute inset-4 border-[6px] border-[#D4AF37] p-2" />
-          <div className="absolute inset-[24px] border-[2px] border-[#B8860B] opacity-50" />
-          
-          <img src="/depaid-logo.png" className="w-24 h-24 mb-6 relative z-10 opacity-90" alt="Logo" style={{ filter: "grayscale(20%) sepia(20%)" }} />
-          
-          <h2 className="text-xl tracking-[0.2em] text-[#B8860B] font-bold uppercase mb-2">Republic of the Philippines</h2>
-          <h1 className="text-4xl font-black text-[#8B0000] tracking-wide uppercase mb-1">{schoolInfo.schoolName || "School Name"}</h1>
-          <p className="text-lg text-slate-700 italic mb-10">{schoolInfo.division || "Division"}, {schoolInfo.region || "Region"}</p>
+      {certList.length > 0 && (
+         <div id="print-certificate" className="hidden print:block">
+           {certList.map((student, idx) => (
+              <div key={student.lrn} className="flex flex-col items-center justify-center h-screen text-center p-12 relative overflow-hidden bg-white" style={{ fontFamily: "serif", pageBreakAfter: idx === certList.length - 1 ? "auto" : "always" }}>
+                
+                {/* Ornate Border Elements */}
+                <div className="absolute inset-4 border-[6px] border-[#D4AF37] p-2" />
+                <div className="absolute inset-[24px] border-[2px] border-[#B8860B] opacity-50" />
+                
+                {/* Optional PPTX Background Hook - user can replace /cert-assets/bg.png if needed */}
+                <div className="absolute inset-0 z-0 opacity-15 pointer-events-none" style={{ backgroundImage: "url('/cert-assets/image17.png')", backgroundSize: "cover", backgroundPosition: "center" }} />
+                
+                <img src="/depaid-logo.svg" className="w-24 h-24 mb-6 relative z-10 opacity-90" alt="Logo" style={{ filter: "grayscale(20%) sepia(20%)" }} />
+                
+                <div className="relative z-10 w-full flex flex-col items-center">
+                  <h2 className="text-xl tracking-[0.2em] text-[#B8860B] font-bold uppercase mb-2">Republic of the Philippines</h2>
+                  <h1 className="text-4xl font-black text-[#8B0000] tracking-wide uppercase mb-1">{schoolInfo.schoolName || "School Name"}</h1>
+                  <p className="text-lg text-slate-700 italic mb-10">{schoolInfo.division || "Division"}, {schoolInfo.region || "Region"}</p>
 
-          <p className="text-2xl text-slate-800 italic mb-4">This Certificate Is Proudly Presented To</p>
-          
-          <h1 className="text-6xl font-black uppercase text-[#111A24] tracking-tight mb-8" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}>
-            {certStudent.name}
-          </h1>
+                  <p className="text-2xl text-slate-800 italic mb-4">This Certificate Is Proudly Presented To</p>
+                  
+                  <h1 className="text-6xl font-black uppercase text-[#111A24] tracking-tight mb-8" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.1)" }}>
+                    {student.name}
+                  </h1>
 
-          <div className="bg-[#8B0000] text-white px-8 py-2 text-2xl font-bold tracking-[0.15em] mb-8 inline-block" style={{ boxShadow: "0 4px 12px rgba(139,0,0,0.3)" }}>
-            ACADEMIC EXCELLENCE AWARD
-          </div>
+                  <div className="bg-[#8B0000] text-white px-8 py-2 text-2xl font-bold tracking-[0.15em] mb-8 inline-block" style={{ boxShadow: "0 4px 12px rgba(139,0,0,0.3)" }}>
+                    ACADEMIC EXCELLENCE AWARD
+                  </div>
 
-          <p className="max-w-4xl mx-auto text-xl leading-relaxed text-slate-800 text-justify mb-10">
-            In recognition of {getPronoun(certStudent.sex)} outstanding academic achievement and exemplary performance, earning the distinction of 
-            <strong className="text-[#8B0000]"> {certStudent.award} </strong> with a General Average of 
-            <strong className="text-slate-900"> {certStudent.average.toFixed(2)} % </strong> 
-            for the Academic Year {schoolInfo.schoolYear}. During the Recognition Rites of SY {schoolInfo.schoolYear}, with a theme: 
-            "Filipino Graduates: Prepared to Lead with Competence and Character".
-            <br/><br/>
-            Your dedication, perseverance, and commitment to excellence are truly commendable. May this achievement inspire you to continue striving for success in all your future endeavors.
-          </p>
+                  <p className="max-w-4xl mx-auto text-xl leading-relaxed text-slate-800 text-justify mb-10">
+                    In recognition of {getPronoun(student.sex)} outstanding academic achievement and exemplary performance, earning the distinction of 
+                    <strong className="text-[#8B0000]"> {student.award} </strong> with a General Average of 
+                    <strong className="text-slate-900"> {student.average.toFixed(2)} % </strong> 
+                    for the Academic Year {schoolInfo.schoolYear}. During the Recognition Rites of SY {schoolInfo.schoolYear}, with a theme: 
+                    "Filipino Graduates: Prepared to Lead with Competence and Character".
+                    <br/><br/>
+                    Your dedication, perseverance, and commitment to excellence are truly commendable. May this achievement inspire you to continue striving for success in all your future endeavors.
+                  </p>
 
-          <p className="text-xl italic text-slate-700 mb-16">
-            Given this {formattedDate}, at {schoolInfo.schoolName}, {schoolInfo.division}.
-          </p>
+                  <p className="text-xl italic text-slate-700 mb-16">
+                    Given this {formattedDate}, at {schoolInfo.schoolName}, {schoolInfo.division}.
+                  </p>
 
-          <div className="flex w-full max-w-4xl justify-between items-end mt-auto px-10">
-             <div className="flex flex-col items-center">
-                <div className="border-b border-black w-64 mb-2 pb-1 text-2xl font-bold uppercase text-[#111A24]">{schoolInfo.adviserName || "Class Adviser"}</div>
-                <div className="text-lg italic text-slate-600">Class Adviser G{schoolInfo.gradeLevel} - {schoolInfo.section}</div>
-             </div>
-             
-             {/* Seal / Badge */}
-             <div className="flex flex-col items-center justify-center">
-                <div className="bg-gradient-to-br from-[#FFDF00] to-[#DAA520] w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 border-[#B8860B] relative">
-                   <div className="border border-[#B8860B]/50 w-28 h-28 rounded-full absolute" />
-                   <p className="text-white drop-shadow-md font-black text-center text-sm leading-tight uppercase px-4">{certStudent.award}</p>
+                  <div className="flex w-full max-w-4xl justify-between items-end mt-auto px-10">
+                     <div className="flex flex-col items-center">
+                        <div className="border-b border-black w-64 mb-2 pb-1 text-2xl font-bold uppercase text-[#111A24]">{schoolInfo.adviserName || "Class Adviser"}</div>
+                        <div className="text-lg italic text-slate-600">Class Adviser G{schoolInfo.gradeLevel} - {schoolInfo.section}</div>
+                     </div>
+                     
+                     {/* Seal / Badge */}
+                     <div className="flex flex-col items-center justify-center">
+                        <div className="bg-gradient-to-br from-[#FFDF00] to-[#DAA520] w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 border-[#B8860B] relative">
+                           <div className="border border-[#B8860B]/50 w-28 h-28 rounded-full absolute" />
+                           <p className="text-white drop-shadow-md font-black text-center text-sm leading-tight uppercase px-4">{student.award}</p>
+                        </div>
+                     </div>
+
+                     <div className="flex flex-col items-center">
+                        <div className="border-b border-black w-64 mb-2 pb-1 text-2xl font-bold uppercase text-[#111A24]">{schoolInfo.schoolHeadName || "School Head"}</div>
+                        <div className="text-lg italic text-slate-600">Principal</div>
+                     </div>
+                  </div>
                 </div>
-             </div>
-
-             <div className="flex flex-col items-center">
-                <div className="border-b border-black w-64 mb-2 pb-1 text-2xl font-bold uppercase text-[#111A24]">{schoolInfo.schoolHeadName || "School Head"}</div>
-                <div className="text-lg italic text-slate-600">Principal</div>
-             </div>
-          </div>
-        </div>
+              </div>
+           ))}
+         </div>
       )}
 
       {/* ─── SCREEN UI ─── */}
@@ -133,6 +142,9 @@ export default function HonorRollPage() {
           <p className="text-muted-foreground mt-1">Class Rankings & Academic Certificates (SY {schoolInfo.schoolYear} • Q{schoolInfo.quarter})</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" className="bg-white border-[#003876] text-[#003876] hover:bg-blue-50" onClick={() => setCertList(rankedStudents)}>
+            <Printer className="mr-2 h-4 w-4" /> Bulk Print All (Class List)
+          </Button>
           <Button variant="outline" className="bg-white">
             <FileText className="mr-2 h-4 w-4" /> Export Ranking
           </Button>
@@ -156,7 +168,7 @@ export default function HonorRollPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                {top10.map((student, idx) => (
                   <div key={student.lrn} className="skeu-card p-4 flex items-center gap-4 group hover:border-amber-300 transition-colors cursor-pointer"
-                       onClick={() => setCertStudent(student)}>
+                       onClick={() => setCertList([student])}>
                       <div className="h-12 w-12 rounded-xl flex items-center justify-center text-xl font-black shrink-0 relative overflow-hidden"
                            style={idx === 0 ? { background: "linear-gradient(135deg, #FFDF70, #D4AF37)", color: "white", textShadow: "0 2px 4px rgba(0,0,0,0.2)" } 
                                 : idx === 1 ? { background: "linear-gradient(135deg, #E2E8F0, #94A3B8)", color: "white" } 
@@ -173,7 +185,7 @@ export default function HonorRollPage() {
                           <Button 
                              size="sm" variant="ghost" 
                              className="h-6 px-2 text-[10px] uppercase font-bold text-blue-600 hover:bg-blue-50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                             onClick={(e) => { e.stopPropagation(); setCertStudent(student); setTimeout(handlePrint, 300); }}
+                             onClick={(e) => { e.stopPropagation(); setCertList([student]); setTimeout(handlePrint, 300); }}
                           >
                              Print Cert
                           </Button>
@@ -214,30 +226,34 @@ export default function HonorRollPage() {
       )}
 
       {/* Certificate Preview Modal */}
-      {certStudent && (
+      {certList.length > 0 && (
          <div className="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
              <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-                <button onClick={() => setCertStudent(null)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
+                <button onClick={() => setCertList([])} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
                    <Trophy size={20} className="opacity-0" />
                    <span className="absolute inset-0 flex items-center justify-center">✕</span>
                 </button>
                 
                 <div className="text-center mb-6 border-b border-slate-100 pb-6">
                    <Medal size={48} className="mx-auto text-amber-500 mb-3" />
-                   <h2 className="text-2xl font-black text-slate-900">{certStudent.name}</h2>
-                   <p className="text-amber-600 font-bold tracking-wide uppercase text-sm mt-1">{certStudent.award} • {certStudent.average.toFixed(2)} AVG</p>
+                   <h2 className="text-2xl font-black text-slate-900">
+                     {certList.length === 1 ? certList[0].name : `Bulk Print: ${certList.length} Certificates`}
+                   </h2>
+                   {certList.length === 1 && (
+                     <p className="text-amber-600 font-bold tracking-wide uppercase text-sm mt-1">{certList[0].award} • {certList[0].average.toFixed(2)} AVG</p>
+                   )}
                 </div>
                 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                    <p className="text-xs text-amber-800 font-medium">
-                       A print-ready certificate will be generated using DepEd's <strong>{schoolInfo.schoolYear} Recognition Rites</strong> format containing the exact signatures of the Class Adviser ({schoolInfo.adviserName}) and Principal ({schoolInfo.schoolHeadName}).
+                    <p className="text-xs text-amber-800 font-medium text-center">
+                       {certList.length === 1 ? 'A print-ready certificate will be generated using' : 'Print-ready certificates will be generated for the entire payload using'} DepEd's <strong>{schoolInfo.schoolYear} Recognition Rites</strong> format with exact coordinates, background watermarks, and Signatory bounds.
                     </p>
                 </div>
 
                 <div className="flex gap-3">
-                   <Button variant="outline" className="flex-1 h-12" onClick={() => setCertStudent(null)}>Cancel</Button>
+                   <Button variant="outline" className="flex-1 h-12" onClick={() => setCertList([])}>Cancel</Button>
                    <Button className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white" onClick={handlePrint}>
-                      <Printer className="mr-2" size={18} /> Print Official Certificate
+                      <Printer className="mr-2" size={18} /> Print {certList.length === 1 ? 'Certificate' : `Batch (${certList.length})`}
                    </Button>
                 </div>
              </div>
