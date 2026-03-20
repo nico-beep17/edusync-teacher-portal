@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTeacherStore, Student } from "@/store/useStore"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { QrCode, Sparkles, Navigation } from "lucide-react"
+import { QrCode, Sparkles } from "lucide-react"
 import { useState } from "react"
 import QRCode from "react-qr-code"
 

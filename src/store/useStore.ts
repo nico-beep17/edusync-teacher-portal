@@ -22,25 +22,42 @@ export type GradeEntry = {
 }
 
 export type AttendanceEntry = {
-  date: string // ISO string or simple YYYY-MM-DD
-  status: 'P' | 'A' | 'L' // Present, Absent, Late
+  date: string
+  status: 'P' | 'A' | 'L'
+}
+
+export type WorkloadEntry = {
+  id: string
+  subject: string
+  section: string
+  students: number
+  schedule: string
+  slug: string
+  gradient: string
 }
 
 interface TeacherState {
   students: Student[]
-  grades: Record<string, GradeEntry[]> // Keyed by student LRN
-  attendance: Record<string, AttendanceEntry[]> // Keyed by student LRN
-  
+  grades: Record<string, GradeEntry[]>
+  attendance: Record<string, AttendanceEntry[]>
+  workload: WorkloadEntry[]
+  teacherPin: string
+
   // Actions
   addStudent: (student: Student) => void
+  removeStudent: (lrn: string) => void
   updateGrade: (lrn: string, gradeData: GradeEntry) => void
   updateAttendance: (lrn: string, record: AttendanceEntry) => void
+  addWorkload: (entry: WorkloadEntry) => void
+  removeWorkload: (id: string) => void
+  setTeacherPin: (pin: string) => void
   pushToCloud: () => Promise<void>
 }
 
 export const useTeacherStore = create<TeacherState>()(
   persist(
     (set) => ({
+      teacherPin: '1234',
       students: [
         { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
         { lrn: "101010101011", name: "BARRIENTOS, JOHN PAUL M.", sex: "M", status: "ENROLLED" },
@@ -136,6 +153,11 @@ export const useTeacherStore = create<TeacherState>()(
             { date: '2026-03-18', status: 'P' },
          ],
       },
+      workload: [
+        { id: "1", subject: "Filipino 8", section: "ARIES", students: 16, schedule: "M/W/F 8:00-9:00 AM", slug: "filipino-8-aries", gradient: "from-blue-500 to-cyan-500" },
+        { id: "2", subject: "MAPEH 8", section: "TAURUS", students: 40, schedule: "T/TH 10:00-11:30 AM", slug: "mapeh-8-taurus", gradient: "from-emerald-500 to-teal-500" },
+        { id: "3", subject: "Filipino 9", section: "GEMINI", students: 38, schedule: "M/W/F 1:00-2:00 PM", slug: "filipino-9-gemini", gradient: "from-purple-500 to-pink-500" },
+      ],
       
       addStudent: (student) => {
          // Fire and forget to Cloud (guarded)
@@ -153,6 +175,10 @@ export const useTeacherStore = create<TeacherState>()(
             students: [...state.students, student] 
          }))
       },
+
+      removeStudent: (lrn) => set((state) => ({
+        students: state.students.filter(s => s.lrn !== lrn)
+      })),
       
       updateGrade: (lrn, gradeData) => set((state) => {
         const studentGrades = state.grades[lrn] || []
@@ -191,6 +217,16 @@ export const useTeacherStore = create<TeacherState>()(
           }
         }
       }),
+
+      addWorkload: (entry) => set((state) => ({
+        workload: [...state.workload, entry]
+      })),
+
+      removeWorkload: (id) => set((state) => ({
+        workload: state.workload.filter(w => w.id !== id)
+      })),
+
+      setTeacherPin: (pin) => set({ teacherPin: pin }),
 
       pushToCloud: async () => {
          if (!supabase) {

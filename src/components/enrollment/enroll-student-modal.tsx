@@ -42,7 +42,7 @@ export function EnrollStudentModal() {
       lrn: form.lrn,
       name: `${form.lastName.toUpperCase()}, ${form.firstName.toUpperCase()}`,
       sex: form.sex as 'M' | 'F',
-      status: 'Enrolled'
+      status: 'ENROLLED'
     })
 
     setOpen(false) // Close modal
@@ -150,16 +150,21 @@ export function EnrollStudentModal() {
         </DialogHeader>
 
         {/* Custom Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-lg mt-2 relative z-10">
+        <div className="flex bg-slate-100 p-1 rounded-lg mt-2 relative z-10 gap-0.5">
            <button 
              onClick={() => setActiveTab('manual')}
-             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'manual' ? 'bg-white shadow relative text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
-             Manual Entry
+             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'manual' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
+             Manual
            </button>
            <button 
              onClick={() => setActiveTab('ai')}
-             className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ai' ? 'bg-white shadow text-[#1ca560]' : 'text-slate-500 hover:text-slate-700'}`}>
-             <Wand2 className="h-3 w-3" /> AI Smart Scan
+             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ai' ? 'bg-white shadow text-[#1ca560]' : 'text-slate-500 hover:text-slate-700'}`}>
+             <Wand2 className="h-3 w-3" /> AI Scan
+           </button>
+           <button 
+             onClick={() => setActiveTab('bulk')}
+             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'bulk' ? 'bg-white shadow text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}>
+             <UploadCloud className="h-3 w-3" /> CSV Bulk
            </button>
         </div>
 

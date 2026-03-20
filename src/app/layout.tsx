@@ -6,7 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DepAid | DepEd Teacher Portal",
+  title: "DepAid | Teacher Portal",
   description: "DepEd-Compliant Offline-First Teacher Management System for Philippine Public Schools",
   applicationName: "DepAid",
   manifest: "/manifest.json",

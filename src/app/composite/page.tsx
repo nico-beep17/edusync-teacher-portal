@@ -28,6 +28,7 @@ const computeAverage = (grades: any[], requiredSubjects: string[]) => {
 
 export default function CompositeGradesPage() {
   const [mounted, setMounted] = useState(false)
+  const [finalized, setFinalized] = useState(false)
   const students = useTeacherStore(s => s.students)
   const gradesMap = useTeacherStore(s => s.grades)
 
@@ -131,8 +132,27 @@ export default function CompositeGradesPage() {
               Automatically synchronized from Subject Teacher ECR submissions.
             </CardDescription>
           </div>
-          <Button variant="secondary" size="sm">
-            <Calculator className="mr-2 h-4 w-4" /> Finalize General Average
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={() => {
+              const allComplete = subjects.every(sub => students.every(s => {
+                const gList = gradesMap[s.lrn] || []
+                return gList.some(g => g.subject.toLowerCase().includes(sub.toLowerCase()))
+              }))
+              if (!allComplete) {
+                alert('Cannot finalize: Not all subjects have complete grades. Check the Subject Teacher Submissions widget above.')
+                return
+              }
+              setFinalized(true)
+              setTimeout(() => setFinalized(false), 4000)
+            }}
+            className={finalized ? 'bg-emerald-100 text-emerald-700' : ''}
+          >
+            {finalized 
+              ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Finalized!</>
+              : <><Calculator className="mr-2 h-4 w-4" /> Finalize General Average</>
+            }
           </Button>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">

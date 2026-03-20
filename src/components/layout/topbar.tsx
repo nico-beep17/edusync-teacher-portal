@@ -1,115 +1,288 @@
 "use client"
 
-import {
-  Bell, Search, Settings, LogOut, ChevronDown, Cloud, WifiOff
-} from "lucide-react"
+import { Bell, Search, Settings, LogOut, ChevronDown, Cloud, WifiOff } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { useTeacherStore } from "@/store/useStore"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-// Map pathname to readable page title
 const pageTitles: Record<string, string> = {
   "/": "Advisory Dashboard",
   "/attendance": "SF2 Daily Attendance",
   "/composite": "Composite Grades",
   "/sf5": "SF5 Promotion & Retention",
   "/workload": "Teaching Workload",
+  "/settings": "Settings",
 }
 
 export function Topbar() {
   const pathname = usePathname()
   const [isOnline, setIsOnline] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showResults, setShowResults] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  const students = useTeacherStore(s => s.students)
+  const gradesMap = useTeacherStore(s => s.grades)
+  const attendanceMap = useTeacherStore(s => s.attendance)
+
+  const searchResults = searchQuery.trim().length >= 2
+    ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.lrn.includes(searchQuery)).slice(0, 5)
+    : []
+
+  const alerts: { icon: string; text: string; type: "warn" | "error" }[] = []
+  students.forEach(s => {
+    const absences = (attendanceMap[s.lrn] || []).filter((a: any) => a.status === 'A').length
+    if (absences >= 2) alerts.push({ icon: '⚠️', text: `${s.name.split(',')[0]} — ${absences} absences`, type: "warn" })
+  })
+  students.forEach(s => {
+    const failing = (gradesMap[s.lrn] || []).filter((g: any) => g.quarterGrade > 0 && g.quarterGrade < 75)
+    if (failing.length > 0) alerts.push({ icon: '🔴', text: `${s.name.split(',')[0]} failing ${failing.map((f: any) => f.subject).join(', ')}`, type: "error" })
+  })
 
   useEffect(() => {
+    setMounted(true)
     setIsOnline(navigator.onLine)
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-       window.removeEventListener('online', handleOnline)
-       window.removeEventListener('offline', handleOffline)
-    }
+    const on = () => setIsOnline(true)
+    const off = () => setIsOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  // Don't render topbar on login page
-  if (pathname === "/login") return null
-
-  // Resolve page title (handles dynamic routes like /ecr/[subject])
+  if (["/login", "/register", "/paywall"].includes(pathname)) return null
   const pageTitle = pageTitles[pathname] || (pathname.startsWith("/ecr/") ? "E-Class Record" : "DepAid")
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 lg:px-6 backdrop-blur-md">
-      {/* Left: Page Title (with mobile offset for hamburger) */}
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between px-4 lg:px-6 skeu-topbar">
+
+      {/* Left: Page Title */}
       <div className="flex items-center gap-3 pl-12 lg:pl-0">
-        <h2 className="text-base font-bold text-slate-800 tracking-tight truncate">{pageTitle}</h2>
+        {/* Precision divider */}
+        <div className="hidden lg:block h-5 w-px" style={{ background: "linear-gradient(180deg, transparent, #C8D4E0, transparent)" }} />
+        <h2 className="text-sm font-black tracking-wide truncate" style={{ color: "#111A24" }}>
+          {pageTitle}
+        </h2>
       </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* PWA Sync Indicator */}
-        <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-colors ${isOnline ? 'bg-emerald-50 text-[#1ca560] border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
-           {isOnline ? (
-              <><Cloud size={12} className="animate-pulse" /> Cloud Sync</>
-           ) : (
-              <><WifiOff size={12} /> Offline</>
-           )}
-        </div>
+      {/* Right */}
+      <div className="flex items-center gap-2 sm:gap-2.5">
+
+        {/* Status indicator */}
+        {mounted && (
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+            style={isOnline ? {
+              background: "linear-gradient(180deg, #E8F7EE 0%, #DDEEE5 100%)",
+              border: "1px solid #A8D8BA",
+              color: "#1ca560",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 4px rgba(0,0,0,0.06)"
+            } : {
+              background: "linear-gradient(180deg, #FFF8EC 0%, #FFEECC 100%)",
+              border: "1px solid #D4B060",
+              color: "#C07808",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 4px rgba(0,0,0,0.06)"
+            }}
+          >
+            <div className={isOnline ? "skeu-led-green" : "skeu-led-amber"} style={{ width: 6, height: 6 }} />
+            {isOnline ? "Cloud Sync" : "Offline"}
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative hidden w-[200px] xl:block">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 z-10" style={{ color: "#8898AC" }} />
           <input
             type="text"
             placeholder="Search students..."
-            className="h-8 w-full rounded-md border border-slate-200 bg-slate-50/50 pl-9 pr-4 text-sm outline-none focus:border-[#1ca560] focus:ring-1 focus:ring-[#1ca560] transition-colors"
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setShowResults(true) }}
+            onFocus={() => setShowResults(true)}
+            onBlur={() => setTimeout(() => setShowResults(false), 200)}
+            className="h-8 w-full rounded-md pl-8 pr-3 text-xs skeu-input"
           />
+          {showResults && searchResults.length > 0 && (
+            <div
+              className="absolute top-full left-0 w-[276px] mt-1.5 overflow-hidden z-50 rounded-lg"
+              style={{
+                background: "linear-gradient(180deg, #FFFFFF 0%, #FAFCFF 100%)",
+                border: "1px solid #D4DCE6",
+                boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 8px 24px rgba(0,0,0,0.12)"
+              }}
+            >
+              {searchResults.map(s => (
+                <Link
+                  key={s.lrn}
+                  href="/"
+                  onClick={() => { setSearchQuery(""); setShowResults(false) }}
+                  className="flex items-center gap-3 px-3 py-2.5 border-b last:border-0 transition-colors"
+                  style={{ borderColor: "#EEF2F8" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.04)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "")}
+                >
+                  <div
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                    style={s.sex === 'M'
+                      ? { background: "linear-gradient(135deg, #E0EEFF, #C8D8F8)", color: "#2060C0", border: "1px solid #B0C8F0" }
+                      : { background: "linear-gradient(135deg, #FFE0EE, #F8C8E0)", color: "#C030A0", border: "1px solid #F0B0D8" }
+                    }
+                  >
+                    {s.sex}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: "#111A24" }}>{s.name}</p>
+                    <p className="text-[10px] font-mono" style={{ color: "#8898AC" }}>{s.lrn}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Notifications */}
-        <button className="relative flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-          <Bell size={16} />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-white bg-red-500"></span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifs(!showNotifs)}
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-95"
+            style={{
+              background: showNotifs
+                ? "linear-gradient(180deg, #EEF2F8 0%, #E4E9EF 100%)"
+                : "linear-gradient(180deg, #FFFFFF 0%, #F4F7FC 100%)",
+              border: "1px solid #C8D4E0",
+              borderBottomWidth: showNotifs ? 1 : 2,
+              borderBottomColor: showNotifs ? "#C8D4E0" : "#B0BECE",
+              boxShadow: showNotifs
+                ? "0 2px 4px rgba(0,0,0,0.1) inset"
+                : "0 1px 0 rgba(255,255,255,1) inset, 0 3px 7px rgba(0,0,0,0.08)",
+              color: "#5A6A7E"
+            }}
+          >
+            <Bell size={14} />
+            {alerts.length > 0 && (
+              <span
+                className="absolute -right-1 -top-1 h-4 w-4 rounded-full text-white text-[9px] font-black flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(180deg, #D84040 0%, #C03030 100%)",
+                  border: "1px solid #901010",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 5px rgba(192,48,48,0.4)"
+                }}
+              >
+                {alerts.length > 9 ? '9+' : alerts.length}
+              </span>
+            )}
+          </button>
+
+          {showNotifs && (
+            <div
+              className="absolute top-full right-0 w-[310px] mt-2 overflow-hidden z-50 rounded-xl"
+              style={{
+                background: "linear-gradient(180deg, #FFFFFF 0%, #FAFCFF 100%)",
+                border: "1px solid #D4DCE6",
+                boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 12px 32px rgba(0,0,0,0.12)"
+              }}
+            >
+              <div
+                className="px-4 py-2.5 flex items-center justify-between"
+                style={{
+                  background: "linear-gradient(180deg, #F4F7FC 0%, #EEF2F8 100%)",
+                  borderBottom: "1px solid #D4DCE6"
+                }}
+              >
+                <span className="text-xs font-black" style={{ color: "#111A24" }}>Notifications</span>
+                <span className="skeu-label">{alerts.length} alert{alerts.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="max-h-[280px] overflow-y-auto">
+                {alerts.length === 0
+                  ? <div className="px-4 py-8 text-center text-sm" style={{ color: "#8898AC" }}>No alerts — all clear! ✅</div>
+                  : alerts.map((a, i) => (
+                    <div
+                      key={i}
+                      className="px-4 py-2.5 transition-colors"
+                      style={{ borderBottom: "1px solid #EEF2F8" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.04)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "")}
+                    >
+                      <p className="text-xs font-semibold" style={{ color: a.type === "error" ? "#C03030" : "#C07808" }}>
+                        {a.icon} {a.text}
+                      </p>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Settings */}
-        <button className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-          <Settings size={16} />
-        </button>
+        <Link
+          href="/settings"
+          className="flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-95"
+          style={{
+            background: "linear-gradient(180deg, #FFFFFF 0%, #F4F7FC 100%)",
+            border: "1px solid #C8D4E0",
+            borderBottom: "2px solid #B0BECE",
+            boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 7px rgba(0,0,0,0.08)",
+            color: "#5A6A7E"
+          }}
+        >
+          <Settings size={14} />
+        </Link>
 
-        <div className="border-l h-5 mx-0.5 border-slate-200 hidden sm:block"></div>
+        <div className="hidden sm:block h-5 w-px" style={{ background: "linear-gradient(180deg, transparent, #C8D4E0, transparent)" }} />
 
         {/* Profile Dropdown */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-slate-50 p-1 pr-2 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#1ca560] cursor-pointer">
-              <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-emerald-400 to-[#1ca560] shadow-inner border border-emerald-600/30 shrink-0"></div>
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-semibold text-slate-800 leading-none">C. Rubino</span>
-                <span className="text-[9px] uppercase font-bold text-[#1ca560] tracking-wider mt-0.5">Teacher I</span>
-              </div>
-              <ChevronDown size={12} className="text-slate-400 hidden sm:block" />
+          <DropdownMenuTrigger
+            className="flex items-center gap-2 rounded-lg px-2 py-1 transition-all outline-none cursor-pointer"
+            style={{
+              background: "linear-gradient(180deg, #FFFFFF 0%, #F4F7FC 100%)",
+              border: "1px solid #C8D4E0",
+              borderBottom: "2px solid #B0BECE",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 7px rgba(0,0,0,0.08)"
+            }}
+          >
+            <div
+              className="h-6 w-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black"
+              style={{
+                background: "linear-gradient(145deg, #22B868, #1ca560, #178848)",
+                border: "2px solid #148044",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 5px rgba(28,165,96,0.35)",
+                color: "#FFFFFF"
+              }}
+            >
+              R
+            </div>
+            <div className="hidden sm:flex flex-col items-start text-left">
+              <span className="text-[11px] font-bold leading-none" style={{ color: "#111A24" }}>C. Rubino</span>
+              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#1ca560" }}>Teacher I</span>
+            </div>
+            <ChevronDown size={11} className="hidden sm:block" style={{ color: "#8898AC" }} />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[180px] bg-white p-1 shadow-lg border border-slate-200/60">
-            <DropdownMenuItem className="text-sm text-slate-600 cursor-pointer p-2 rounded-md">
+          <DropdownMenuContent
+            align="end"
+            className="w-[175px] p-1"
+            style={{
+              background: "linear-gradient(180deg, #FFFFFF 0%, #FAFCFF 100%)",
+              border: "1px solid #D4DCE6",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 12px 32px rgba(0,0,0,0.12)"
+            }}
+          >
+            <DropdownMenuItem className="text-xs cursor-pointer p-2 rounded-md" style={{ color: "#3A4A5E" }}>
               <Settings className="mr-2 h-3.5 w-3.5" />
               <span>Preferences</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator style={{ background: "#DDE4EE" }} />
             <Link href="/login" className="w-full">
-               <DropdownMenuItem className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer font-medium p-2 rounded-md">
-                 <LogOut className="mr-2 h-3.5 w-3.5" />
-                 <span>Log Out</span>
-               </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer p-2 rounded-md text-xs" style={{ color: "#C03030" }}>
+                <LogOut className="mr-2 h-3.5 w-3.5" />
+                <span>Log Out</span>
+              </DropdownMenuItem>
             </Link>
           </DropdownMenuContent>
         </DropdownMenu>
+
       </div>
     </header>
   )

@@ -3,12 +3,13 @@
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
+import { AIAssistant } from "@/components/ai/ai-assistant"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isLoginPage = pathname === "/login"
+  const isFullScreenPage = pathname === "/login" || pathname === "/register" || pathname === "/paywall"
 
-  if (isLoginPage) {
+  if (isFullScreenPage) {
     return <>{children}</>
   }
 
@@ -23,6 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+      <AIAssistant />
     </div>
   )
 }

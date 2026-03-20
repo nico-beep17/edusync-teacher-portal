@@ -4,57 +4,20 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import {
-  LayoutDashboard,
-  ClipboardCheck,
-  BarChart3,
-  Award,
-  BookOpen,
-  UserPlus,
-  QrCode,
-  FileSpreadsheet,
-  ChevronLeft,
-  ChevronRight,
-  GraduationCap,
-  Menu,
-  X
+  LayoutDashboard, ClipboardCheck, BarChart3,
+  Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X
 } from "lucide-react"
 
 const navItems = [
-  // ─── ADVISORY DUTIES (what a class adviser does daily) ───
   { label: "ADVISORY", type: "header" as const },
-  {
-    href: "/",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    description: "Overview & Masterlist"
-  },
-  {
-    href: "/attendance",
-    label: "SF2 Attendance",
-    icon: ClipboardCheck,
-    description: "Daily attendance & QR"
-  },
-  {
-    href: "/composite",
-    label: "Composite Grades",
-    icon: BarChart3,
-    description: "Collect & aggregate"
-  },
-  {
-    href: "/sf5",
-    label: "SF5 Promotion",
-    icon: Award,
-    description: "Promotion & retention"
-  },
-
-  // ─── SUBJECT TEACHER DUTIES ───
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, description: "Overview & masterlist" },
+  { href: "/attendance", label: "SF2 Attendance", icon: ClipboardCheck, description: "Daily attendance & QR" },
+  { href: "/composite", label: "Composite Grades", icon: BarChart3, description: "Collect & aggregate" },
+  { href: "/sf5", label: "SF5 Promotion", icon: Award, description: "Promotion & retention" },
   { label: "SUBJECT TEACHING", type: "header" as const },
-  {
-    href: "/workload",
-    label: "My Workload",
-    icon: BookOpen,
-    description: "ECR & grading sheets"
-  },
+  { href: "/workload", label: "My Workload", icon: BookOpen, description: "ECR & grading sheets" },
+  { label: "SYSTEM", type: "header" as const },
+  { href: "/settings", label: "Settings", icon: Settings2, description: "Subjects, import & export" },
 ]
 
 export function Sidebar() {
@@ -62,42 +25,61 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Close mobile drawer on route change
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  // Don't render sidebar on login page
-  if (pathname === "/login") return null
+  if (["/login", "/register", "/paywall"].includes(pathname)) return null
 
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/"
-    return pathname.startsWith(href)
-  }
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href)
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
+
       {/* Logo Header */}
-      <div className={`flex items-center h-16 px-4 border-b border-slate-200/60 shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
-        <img src="/depaid-logo.png" alt="DepAid" className="h-9 w-9 rounded-xl shadow-md shadow-emerald-500/20 shrink-0 object-cover" />
+      <div
+        className={`flex items-center h-16 px-4 shrink-0 ${collapsed ? "justify-center" : "gap-3"}`}
+        style={{
+          background: "linear-gradient(180deg, #FFFFFF 0%, #F5F8FC 100%)",
+          borderBottom: "1px solid #DDE4EE",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+        }}
+      >
+        <div
+          className="h-9 w-9 rounded-xl overflow-hidden shrink-0"
+          style={{
+            boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 3px 8px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08)",
+            border: "1px solid #D4DCE6"
+          }}
+        >
+          <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-cover" />
+        </div>
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
-            <span className="text-lg font-bold tracking-tight text-slate-900 leading-tight">DepAid</span>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Teacher Portal</span>
+            <span className="text-base font-black tracking-tight leading-tight" style={{ color: "#111A24" }}>
+              DepAid
+            </span>
+            <span className="skeu-label" style={{ marginTop: 2 }}>Teacher Portal</span>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5">
         {navItems.map((item, idx) => {
           if (item.type === "header") {
-            if (collapsed) return <div key={idx} className="my-3 border-t border-slate-200/60" />
+            if (collapsed) return (
+              <div
+                key={idx}
+                className="my-3 mx-1"
+                style={{
+                  height: 1,
+                  background: "linear-gradient(90deg, transparent, #D4DCE6, transparent)"
+                }}
+              />
+            )
             return (
-              <div key={idx} className="pt-5 pb-2 px-3 first:pt-0">
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                  {item.label}
-                </span>
+              <div key={idx} className="pt-5 pb-1.5 px-2 first:pt-1">
+                <span className="skeu-label">{item.label}</span>
               </div>
             )
           }
@@ -110,54 +92,89 @@ export function Sidebar() {
               key={item.href}
               href={item.href!}
               title={collapsed ? item.label : undefined}
-              className={`
-                group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150
-                ${active
-                  ? 'bg-emerald-50 text-[#1ca560] shadow-sm border border-emerald-100'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
-                }
-                ${collapsed ? 'justify-center px-2' : ''}
-              `}
+              className={`group flex items-center gap-3 rounded-lg text-sm transition-all duration-100 ${collapsed ? "justify-center p-2.5" : "px-3 py-2.5"}`}
+              style={active ? {
+                background: "linear-gradient(90deg, rgba(28,165,96,0.10) 0%, rgba(28,165,96,0.04) 100%)",
+                borderLeft: "2.5px solid #1ca560",
+                paddingLeft: collapsed ? undefined : "10px",
+                boxShadow: "inset 0 1px 0 rgba(28,165,96,0.08), 0 1px 3px rgba(0,0,0,0.04)",
+                borderRadius: "0 8px 8px 0",
+              } : {
+                borderLeft: "2.5px solid transparent",
+                borderRadius: "0 8px 8px 0",
+              }}
             >
+              {/* LED dot for active */}
+              {!collapsed && (
+                <div
+                  className={active ? "skeu-led-green shrink-0" : "skeu-led-off shrink-0"}
+                  style={{ width: 7, height: 7 }}
+                />
+              )}
               <Icon
-                size={20}
-                className={`shrink-0 transition-colors ${active ? 'text-[#1ca560]' : 'text-slate-400 group-hover:text-slate-600'}`}
+                size={18}
+                className="shrink-0 transition-colors"
+                style={{ color: active ? "#1ca560" : "#8898AC" }}
               />
               {!collapsed && (
-                <div className="flex flex-col overflow-hidden">
-                  <span className="truncate leading-tight">{item.label}</span>
+                <div className="flex flex-col overflow-hidden flex-1">
+                  <span
+                    className="truncate leading-tight text-[13px]"
+                    style={{
+                      color: active ? "#1ca560" : "#3A4A5E",
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {item.label}
+                  </span>
                   {item.description && (
-                    <span className={`text-[10px] truncate leading-tight mt-0.5 ${active ? 'text-emerald-600/70' : 'text-slate-400'}`}>
+                    <span
+                      className="text-[10px] truncate leading-tight mt-0.5"
+                      style={{ color: active ? "#88C8A0" : "#B8C4D4" }}
+                    >
                       {item.description}
                     </span>
                   )}
                 </div>
-              )}
-              {!collapsed && active && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-[#1ca560] shrink-0" />
               )}
             </Link>
           )
         })}
       </nav>
 
-      {/* Footer / School Info */}
+      {/* School Info Footer */}
       {!collapsed && (
-        <div className="shrink-0 border-t border-slate-200/60 p-4">
-          <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs font-bold text-slate-700 leading-tight">Grade 8 — ARIES</p>
-            <p className="text-[10px] text-slate-400 font-medium mt-0.5">S.Y. 2025-2026 • Quarter 1</p>
+        <div
+          className="shrink-0 p-3"
+          style={{ borderTop: "1px solid #DDE4EE" }}
+        >
+          <div
+            className="rounded-lg px-3 py-2.5"
+            style={{
+              background: "linear-gradient(160deg, #FAFCFF 0%, #F4F7FC 100%)",
+              border: "1px solid #D4DCE6",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 5px rgba(0,0,0,0.06)"
+            }}
+          >
+            <p className="text-xs font-bold" style={{ color: "#1ca560" }}>Grade 8 — ARIES</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#8898AC" }}>S.Y. 2025-2026 • Quarter 1</p>
           </div>
         </div>
       )}
 
-      {/* Collapse Toggle (desktop only) */}
-      <div className="hidden lg:flex shrink-0 border-t border-slate-200/60 p-2">
+      {/* Collapse Toggle */}
+      <div
+        className="hidden lg:flex shrink-0 p-2"
+        style={{ borderTop: "1px solid #DDE4EE" }}
+      >
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition-colors"
+          style={{ color: "#8898AC" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#1ca560")}
+          onMouseLeave={e => (e.currentTarget.style.color = "#8898AC")}
         >
-          {collapsed ? <ChevronRight size={16} /> : <><ChevronLeft size={16} /> Collapse</>}
+          {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /> Collapse</>}
         </button>
       </div>
     </div>
@@ -165,25 +182,32 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Hamburger Button */}
+      {/* Mobile Hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden flex items-center justify-center h-10 w-10 rounded-lg bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-slate-900 transition-colors"
+        className="fixed top-3.5 left-3.5 z-50 lg:hidden flex items-center justify-center h-9 w-9 rounded-lg transition-all active:scale-95"
+        style={{
+          background: "linear-gradient(180deg, #FFFFFF 0%, #F4F7FC 100%)",
+          border: "1px solid #C8D4E0",
+          boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 8px rgba(0,0,0,0.1)",
+          color: "#5A6A7E"
+        }}
         aria-label="Open menu"
       >
-        <Menu size={20} />
+        <Menu size={17} />
       </button>
 
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute top-0 left-0 h-full w-72 animate-in slide-in-from-left duration-200 skeu-sidebar">
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              className="absolute top-4 right-3 flex items-center justify-center h-7 w-7 rounded"
+              style={{ color: "#8898AC" }}
             >
-              <X size={18} />
+              <X size={15} />
             </button>
             {sidebarContent}
           </aside>
@@ -192,11 +216,7 @@ export function Sidebar() {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`
-          hidden lg:flex flex-col shrink-0 h-screen sticky top-0 bg-white border-r border-slate-200/60
-          transition-[width] duration-200 ease-in-out overflow-hidden
-          ${collapsed ? 'w-[68px]' : 'w-[260px]'}
-        `}
+        className={`hidden lg:flex flex-col shrink-0 h-screen sticky top-0 skeu-sidebar transition-[width] duration-200 ease-in-out overflow-hidden ${collapsed ? "w-[60px]" : "w-[256px]"}`}
       >
         {sidebarContent}
       </aside>

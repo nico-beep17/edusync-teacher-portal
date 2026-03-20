@@ -136,7 +136,13 @@ export default function SF5Page() {
                       <TableCell className="font-semibold border-r">{s.name}</TableCell>
                       <TableCell className="text-center font-bold">{avg > 0 ? avg : '-'}</TableCell>
                       <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#1ca560]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
-                      <TableCell className="text-slate-400 italic">None</TableCell>
+                      <TableCell className="text-slate-400 italic text-sm">
+                        {(() => {
+                          const sGrades = gradesMap[s.lrn] || []
+                          const failing = sGrades.filter(g => g.quarterGrade > 0 && g.quarterGrade < 75).map(g => g.subject)
+                          return failing.length > 0 ? <span className="text-red-500 not-italic font-medium">{failing.join(', ')}</span> : 'None'
+                        })()}
+                      </TableCell>
                     </TableRow>
                  )
               })}
@@ -154,7 +160,13 @@ export default function SF5Page() {
                       <TableCell className="font-semibold border-r">{s.name}</TableCell>
                       <TableCell className="text-center font-bold">{avg > 0 ? avg : '-'}</TableCell>
                       <TableCell className={`text-center font-bold border-r ${status==='PROMOTED'?'text-[#1ca560]':status==='RETAINED'?'text-red-500':'text-amber-500'}`}>{status}</TableCell>
-                      <TableCell className="text-slate-400 italic">None</TableCell>
+                      <TableCell className="text-slate-400 italic text-sm">
+                        {(() => {
+                          const sGrades = gradesMap[s.lrn] || []
+                          const failing = sGrades.filter(g => g.quarterGrade > 0 && g.quarterGrade < 75).map(g => g.subject)
+                          return failing.length > 0 ? <span className="text-red-500 not-italic font-medium">{failing.join(', ')}</span> : 'None'
+                        })()}
+                      </TableCell>
                     </TableRow>
                  )
               })}

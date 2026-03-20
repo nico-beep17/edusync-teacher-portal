@@ -6,7 +6,7 @@ import { EnrollStudentModal } from "@/components/enrollment/enroll-student-modal
 import { StudentProfileModal } from "@/components/student-profile-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, UserCheck, Calculator, FileText, TrendingUp, PieChart as PieChartIcon, Cloud, AlertTriangle } from "lucide-react"
+import { Users, UserCheck, Calculator, FileText, TrendingUp, PieChart as PieChartIcon, Cloud, AlertTriangle, Trash2 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Label as RechartsLabel } from 'recharts'
 
 export default function AdviserDashboard() {
@@ -16,6 +16,7 @@ export default function AdviserDashboard() {
   const gradesMap = useTeacherStore((state) => state.grades)
   const attendanceMap = useTeacherStore((state) => state.attendance)
   const pushToCloud = useTeacherStore((state) => state.pushToCloud)
+  const removeStudent = useTeacherStore((state) => state.removeStudent)
 
   // Avoid hydration mismatch for persisted store
   useEffect(() => {
@@ -208,6 +209,63 @@ export default function AdviserDashboard() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* AI Suggestions — shown prominently right after charts */}
+      <Card className="bg-gradient-to-br from-violet-50/50 to-blue-50/50 border border-violet-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-violet-400/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10"></div>
+        <CardHeader className="flex flex-row items-center pb-3">
+          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-violet-100 mr-3 shadow-inner">
+            <TrendingUp className="h-4 w-4 text-violet-600" />
+          </div>
+          <div>
+            <CardTitle className="text-violet-900 text-lg flex items-center gap-2">
+              AI Suggestions
+              <span className="px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded text-[9px] font-bold uppercase tracking-wider">Smart</span>
+            </CardTitle>
+            <CardDescription className="text-violet-600/70">Data-driven recommendations for your class.</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-2">
+            {presentToday === 0 && (
+              <div className="flex items-start gap-3 bg-white/60 rounded-lg p-3 border border-violet-100/50">
+                <span className="text-lg">📋</span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Record today's attendance</p>
+                  <p className="text-xs text-slate-500 mt-0.5">No attendance data for today. Go to SF2 Attendance to mark your class.</p>
+                </div>
+              </div>
+            )}
+            {subjectsWithCompleteData < 8 && (
+              <div className="flex items-start gap-3 bg-white/60 rounded-lg p-3 border border-violet-100/50">
+                <span className="text-lg">📊</span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{8 - subjectsWithCompleteData} subjects still need complete grades</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Follow up with subject teachers to transmit their E-Class Records before the deadline.</p>
+                </div>
+              </div>
+            )}
+            {interventionList.length > 0 && (
+              <div className="flex items-start gap-3 bg-white/60 rounded-lg p-3 border border-violet-100/50">
+                <span className="text-lg">⚠️</span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{interventionList.length} student{interventionList.length > 1 ? 's' : ''} need{interventionList.length === 1 ? 's' : ''} intervention</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Schedule a SARDO meeting with parents of students below 75 average or with excessive absences.</p>
+                </div>
+              </div>
+            )}
+            {subjectsWithCompleteData === 8 && interventionList.length === 0 && (
+              <div className="flex items-start gap-3 bg-white/60 rounded-lg p-3 border border-emerald-100/50">
+                <span className="text-lg">✨</span>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">All clear! Your class is on track.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">All subjects submitted and no students flagged for intervention. Great job, Teacher!</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Early Intervention SARDO Alert */}
       {interventionList.length > 0 && (
@@ -288,13 +346,15 @@ export default function AdviserDashboard() {
                 <TableCell colSpan={5} className="font-semibold text-xs tracking-wider text-blue-800">MALE</TableCell>
               </TableRow>
               {masterList.filter(s => s.sex === 'M').map((student, idx) => (
-                <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="font-mono text-sm">{student.lrn}</TableCell>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+                <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors group">
+                  <TableCell className="font-mono text-sm text-slate-500">{student.lrn}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${student.sex === 'M' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}`}>
-                      {student.sex}
-                    </span>
+                    <button onClick={() => setSelectedStudent(student)} className="font-medium text-slate-800 hover:text-[#1ca560] transition-colors text-left">
+                      {student.name}
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Male</span>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
@@ -303,9 +363,12 @@ export default function AdviserDashboard() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <button onClick={() => setSelectedStudent(student)} className="text-sm text-slate-500 hover:text-[#1ca560] transition-colors font-medium">
-                      View Records
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => setSelectedStudent(student)} className="text-sm text-slate-500 hover:text-[#1ca560] transition-colors font-medium">View</button>
+                      <button onClick={() => { if(confirm(`Remove ${student.name} from the masterlist?`)) removeStudent(student.lrn) }} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -314,13 +377,15 @@ export default function AdviserDashboard() {
                 <TableCell colSpan={5} className="font-semibold text-xs tracking-wider text-pink-800">FEMALE</TableCell>
               </TableRow>
               {masterList.filter(s => s.sex === 'F').map((student, idx) => (
-                <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="font-mono text-sm">{student.lrn}</TableCell>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+                <TableRow key={student.lrn} className="hover:bg-slate-50/50 transition-colors group">
+                  <TableCell className="font-mono text-sm text-slate-500">{student.lrn}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${student.sex === 'M' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}`}>
-                      {student.sex}
-                    </span>
+                    <button onClick={() => setSelectedStudent(student)} className="font-medium text-slate-800 hover:text-[#1ca560] transition-colors text-left">
+                      {student.name}
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-100 text-pink-800">Female</span>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
@@ -329,9 +394,12 @@ export default function AdviserDashboard() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <button onClick={() => setSelectedStudent(student)} className="text-sm text-slate-500 hover:text-[#1ca560] transition-colors font-medium">
-                      View Records
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => setSelectedStudent(student)} className="text-sm text-slate-500 hover:text-[#1ca560] transition-colors font-medium">View</button>
+                      <button onClick={() => { if(confirm(`Remove ${student.name} from the masterlist?`)) removeStudent(student.lrn) }} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
