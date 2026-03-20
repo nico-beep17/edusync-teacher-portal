@@ -193,20 +193,29 @@ export const useTeacherStore = create<TeacherState>()(
       ],
       
       addStudent: (student) => {
-         // Fire and forget to Cloud (guarded)
-         if (supabase) {
-           const [last, first] = student.name.split(',')
-           supabase.from('students').upsert({
-              lrn: student.lrn,
-              last_name: (last || '').trim(),
-              first_name: (first || '').trim(),
-              sex: student.sex === 'M' ? 'MALE' : 'FEMALE'
-           }).then(({ error }: any) => { if (error) console.error("Cloud Student Sync Failed:", error) })
-         }
+         set((state) => {
+            const exists = state.students.find(s => s.lrn === student.lrn || s.name.toUpperCase() === student.name.toUpperCase())
+            
+            if (exists) {
+                // Return updated array instead of duplicating
+                return {
+                    students: state.students.map(s => s.lrn === exists.lrn ? { ...s, ...student } : s)
+                }
+            }
 
-         set((state) => ({ 
-            students: [...state.students, student] 
-         }))
+            // Sync to cloud if entirely new
+            if (supabase) {
+               const [last, first] = student.name.split(',')
+               supabase.from('students').upsert({
+                  lrn: student.lrn,
+                  last_name: (last || '').trim(),
+                  first_name: (first || '').trim(),
+                  sex: student.sex === 'M' ? 'MALE' : 'FEMALE'
+               }).then(({ error }: any) => { if (error) console.error("Cloud Student Sync Failed:", error) })
+            }
+
+            return { students: [...state.students, student] }
+         })
       },
 
       removeStudent: (lrn) => set((state) => ({
