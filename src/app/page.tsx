@@ -10,7 +10,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-              <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-cover" />
+              <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-contain p-0.5" />
             </div>
             <span className="text-xl font-black tracking-tight text-[#111A24]">DepAid</span>
           </div>

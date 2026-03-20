@@ -85,7 +85,7 @@ export default function LoginPage() {
             {/* Logo */}
             <div className="flex flex-col items-center text-center mb-7">
               <div className="h-16 w-16 rounded-2xl overflow-hidden mb-4" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 18px rgba(0,0,0,0.14)", border: "1px solid #D4DCE6" }}>
-                <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-cover" />
+                <img src="/depaid-logo-v2.svg" alt="DepAid" className="h-full w-full object-contain p-1" />
               </div>
               <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>DepAid</h1>
               <div className="mt-2 flex items-center gap-1.5">
