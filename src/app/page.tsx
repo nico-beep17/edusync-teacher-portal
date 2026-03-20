@@ -44,10 +44,47 @@ function ConfirmDeleteStudentModal({
   )
 }
 
+function ConfirmDeleteMultipleModal({
+  count, onConfirm, onCancel
+}: {
+  count: number; onConfirm: () => void; onCancel: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden"
+        style={{ background: "linear-gradient(160deg, #FFFFFF 0%, #FFF8F8 100%)", border: "1px solid #E8CCCC", boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 20px 60px rgba(0,0,0,0.18)" }}>
+        <div className="h-1" style={{ background: "linear-gradient(90deg, #C03030, #E04040, #C03030)" }} />
+        <div className="px-6 py-6">
+          <div className="flex flex-col items-center text-center mb-5">
+            <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+              style={{ background: "linear-gradient(180deg, #FFF4F4, #FFE8E8)", border: "1px solid #E8CCCC", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+              <AlertTriangle size={22} style={{ color: "#C03030" }} />
+            </div>
+            <h3 className="text-base font-black" style={{ color: "#111A24" }}>Remove Selected Students?</h3>
+            <p className="text-sm mt-1" style={{ color: "#8898AC" }}>
+              Are you sure you want to remove <strong style={{ color: "#C03030" }}>{count}</strong> students from the masterlist?
+            </p>
+            <p className="text-xs mt-2 font-medium" style={{ color: "#C08080" }}>This action cannot be undone.</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onCancel} className="skeu-btn-ghost flex-1 h-10 rounded-xl text-sm">Cancel</button>
+            <button onClick={onConfirm} className="flex-1 h-10 rounded-xl text-sm font-bold text-white transition-all active:scale-95"
+              style={{ background: "linear-gradient(180deg, #E04040, #C03030)", border: "1px solid #A02020", boxShadow: "0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 12px rgba(192,48,48,0.35)" }}>
+              Remove {count} Students
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdviserDashboard() {
   const [mounted, setMounted] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ lrn: string; name: string } | null>(null)
+  const [selectedLrns, setSelectedLrns] = useState<string[]>([])
+  const [deleteMultiplePrompt, setDeleteMultiplePrompt] = useState(false)
   const masterList = useTeacherStore((state) => state.students)
   const gradesMap = useTeacherStore((state) => state.grades)
   const attendanceMap = useTeacherStore((state) => state.attendance)
@@ -132,6 +169,19 @@ export default function AdviserDashboard() {
           name={deleteTarget.name}
           onConfirm={() => { removeStudent(deleteTarget.lrn); setDeleteTarget(null) }}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* Delete multiple modal */}
+      {deleteMultiplePrompt && (
+        <ConfirmDeleteMultipleModal
+          count={selectedLrns.length}
+          onConfirm={() => {
+             selectedLrns.forEach(lrn => removeStudent(lrn))
+             setSelectedLrns([])
+             setDeleteMultiplePrompt(false)
+          }}
+          onCancel={() => setDeleteMultiplePrompt(false)}
         />
       )}
 
@@ -421,11 +471,26 @@ export default function AdviserDashboard() {
             <p className="font-black text-sm" style={{ color: "#111A24" }}>Class Masterlist (SF1)</p>
             <p className="skeu-label mt-0.5">Officially enrolled students for this section</p>
           </div>
+          {selectedLrns.length > 0 && (
+             <button
+               onClick={() => setDeleteMultiplePrompt(true)}
+               className="h-8 px-3 rounded-lg text-xs font-bold transition-all text-white flex items-center gap-1.5"
+               style={{ background: "linear-gradient(180deg, #E30A24, #B5081C)", border: "1px solid #8A0615" }}
+             >
+               <Trash2 size={13} /> Delete Selected ({selectedLrns.length})
+             </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow style={{ background: "#F4F7FC", borderBottom: "1px solid #DDE4EE" }}>
+                <TableHead className="w-[40px] pr-0">
+                   <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
+                     onChange={(e) => setSelectedLrns(e.target.checked ? masterList.map(s => s.lrn) : [])}
+                     checked={selectedLrns.length === masterList.length && masterList.length > 0} 
+                   />
+                </TableHead>
                 <TableHead className="skeu-label w-[150px]">LRN</TableHead>
                 <TableHead className="skeu-label">Legal Name</TableHead>
                 <TableHead className="skeu-label">Sex</TableHead>
@@ -436,7 +501,7 @@ export default function AdviserDashboard() {
             <TableBody>
               {/* Male section */}
               <TableRow style={{ background: "#EEF5FF", borderBottom: "1px solid #DDE4EE" }}>
-                <TableCell colSpan={5} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#1040A0" }}>MALE</TableCell>
+                <TableCell colSpan={6} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#1040A0" }}>MALE</TableCell>
               </TableRow>
               {masterList.filter(s => s.sex === 'M').map(student => (
                 <TableRow key={student.lrn} className="group transition-colors"
@@ -444,6 +509,12 @@ export default function AdviserDashboard() {
                   onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.03)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "")}
                 >
+                  <TableCell className="pr-0">
+                     <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
+                       checked={selectedLrns.includes(student.lrn)}
+                       onChange={(e) => setSelectedLrns(prev => e.target.checked ? [...prev, student.lrn] : prev.filter(lrn => lrn !== student.lrn))}
+                     />
+                  </TableCell>
                   <TableCell className="font-mono text-xs" style={{ color: "#8898AC" }}>{student.lrn}</TableCell>
                   <TableCell>
                     <button onClick={() => setSelectedStudent(student)} className="font-semibold text-sm text-left transition-colors" style={{ color: "#111A24" }}
@@ -484,7 +555,7 @@ export default function AdviserDashboard() {
 
               {/* Female section */}
               <TableRow style={{ background: "#FFF0F8", borderBottom: "1px solid #DDE4EE" }}>
-                <TableCell colSpan={5} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#A03080" }}>FEMALE</TableCell>
+                <TableCell colSpan={6} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#A03080" }}>FEMALE</TableCell>
               </TableRow>
               {masterList.filter(s => s.sex === 'F').map(student => (
                 <TableRow key={student.lrn} className="group transition-colors"
@@ -492,6 +563,12 @@ export default function AdviserDashboard() {
                   onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.03)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "")}
                 >
+                  <TableCell className="pr-0">
+                     <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
+                       checked={selectedLrns.includes(student.lrn)}
+                       onChange={(e) => setSelectedLrns(prev => e.target.checked ? [...prev, student.lrn] : prev.filter(lrn => lrn !== student.lrn))}
+                     />
+                  </TableCell>
                   <TableCell className="font-mono text-xs" style={{ color: "#8898AC" }}>{student.lrn}</TableCell>
                   <TableCell>
                     <button onClick={() => setSelectedStudent(student)} className="font-semibold text-sm text-left transition-colors" style={{ color: "#111A24" }}
