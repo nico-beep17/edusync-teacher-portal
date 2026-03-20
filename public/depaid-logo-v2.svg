@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2006/svg" viewBox="0 0 600 600" width="600" height="600">
+    <rect width="600" height="600" fill="#FFFFFF" rx="100" />
+    <!-- DEFINITIONS -->
+    <defs>
+        <!-- Torch Gradient -->
+        <linearGradient id="torchGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#00356B" />
+            <stop offset="100%" stop-color="#002244" />
+        </linearGradient>
+
+        <linearGradient id="outerFlame" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="#D91624" />
+            <stop offset="60%" stop-color="#E1212F" />
+            <stop offset="100%" stop-color="#EF414D" />
+        </linearGradient>
+
+        <linearGradient id="innerFlame" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="#FFC107" />
+            <stop offset="100%" stop-color="#FFA000" />
+        </linearGradient>
+
+        <linearGradient id="coreFlame" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="#FFF3E0" />
+            <stop offset="100%" stop-color="#FFE0B2" />
+        </linearGradient>
+    </defs>
+
+    <g transform="translate(0, 185)">
+        <!-- Dep (Dark Blue) -->
+        <text x="30" y="160" font-family="'Arial Black', sans-serif" font-weight="900" font-size="140" fill="#00356B" letter-spacing="-5">D<tspan letter-spacing="-2">ep</tspan></text>
+
+        <!-- TORCH -->
+        <g transform="translate(290, 40)">
+            <!-- Flames -->
+            <path d="M 20,45 C 5,30 20,-10 20,-10 C 20,-10 38,20 20,45" fill="url(#outerFlame)"/>
+            <path d="M 20,40 C 13,31 20,5 20,5 C 20,5 30,25 20,40" fill="url(#innerFlame)"/>
+            <path d="M 20,35 C 16,30 20,15 20,15 C 20,15 25,28 20,35" fill="url(#coreFlame)"/>
+            
+            <!-- Torch Handle Handle -->
+            <path d="M -5,55 L 45,55 L 42,70 L 25,180 L 15,180 L -2,70 Z" fill="url(#torchGrad)" />
+            <rect x="-8" y="47" width="56" height="8" fill="#00356B" rx="1"/>
+            
+            <!-- Handle Detail Lines -->
+            <line x1="12" y1="70" x2="19" y2="175" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.3"/>
+            <line x1="28" y1="70" x2="21" y2="175" stroke="#000000" stroke-width="1.5" stroke-opacity="0.2"/>
+        </g>
+
+        <!-- Aid (Red) -->
+        <text x="360" y="160" font-family="'Arial Black', sans-serif" font-weight="900" font-size="140" fill="#D91624" letter-spacing="-3">Aid</text>
+
+        <!-- Bottom Texts -->
+        <text x="300" y="210" font-family="'Times New Roman', serif" font-weight="700" font-size="20" fill="#00356B" letter-spacing="2" text-anchor="middle">
+            DEPARTMENT OF EDUCATION
+        </text>
+        <text x="300" y="235" font-family="'Arial', sans-serif" font-weight="600" font-size="14" fill="#666666" letter-spacing="4" text-anchor="middle">
+            AI TEACHER PORTAL
+        </text>
+
+        <!-- Left/Right Dividers on "Department of Education" -->
+        <line x1="30" y1="205" x2="120" y2="205" stroke="#00356B" stroke-width="1.5" />
+        <line x1="480" y1="205" x2="570" y2="205" stroke="#00356B" stroke-width="1.5" />
+    </g>
+</svg>
