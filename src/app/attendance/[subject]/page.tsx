@@ -147,21 +147,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
 
   const [localAtt, setLocalAtt] = useState<Record<string, Record<string, string>>>({})
   const [saved, setSaved] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [sf2ModalOpen, setSf2ModalOpen] = useState(false)
-  const [exportConfirmOpen, setExportConfirmOpen] = useState(false)
-  const [sf2Summary, setSf2Summary] = useState({
-    lateEnrollmentM: 0, lateEnrollmentF: 0,
-    dropOutM: 0, dropOutF: 0,
-    transferredOutM: 0, transferredOutF: 0,
-    transferredInM: 0, transferredInF: 0,
-  })
 
-  // Export month: default current month
-  const [exportMonth, setExportMonth] = useState(() => {
-    const n = new Date()
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`
-  })
 
   // PIN unlock state
   const [pinOpen, setPinOpen] = useState(false)
@@ -316,64 +302,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
     setTimeout(() => setSaved(false), 3000)
   }
 
-  const handleSF2Click = () => {
-    const existing = useTeacherStore.getState().sf2Summaries[exportMonth]
-    if (!existing) {
-      // First time compiling for this month, prompt immediately
-      setSf2Summary({
-        lateEnrollmentM: 0, lateEnrollmentF: 0,
-        dropOutM: 0, dropOutF: 0,
-        transferredOutM: 0, transferredOutF: 0,
-        transferredInM: 0, transferredInF: 0,
-      })
-      setSf2ModalOpen(true)
-    } else {
-      // Already has data, just show reminder
-      setSf2Summary(existing)
-      setExportConfirmOpen(true)
-    }
-  }
 
-  const handleExport = async (formCode: 'sf2' | 'sf4', summaryOverride?: any) => {
-    setExporting(true)
-    try {
-      const [y, m] = exportMonth.split('-').map(Number)
-      const attPayload: Record<string, any[]> = {}
-      globalStudents.forEach(s => {
-        attPayload[s.lrn] = (globalAttendance[s.lrn] || []).map(r => ({ date: r.date, status: r.status }))
-      })
-      const si: any = { ...globalSchoolInfo }
-      if (summaryOverride) si.sf2Summary = summaryOverride
-      const res = await fetch('/api/export/sf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          form: formCode,
-          students: globalStudents,
-          attendance: attPayload,
-          year: y,
-          month: m - 1, 
-          schoolInfo: si
-        })
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Export failed')
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      const prefix = formCode === 'sf2' ? 'Attendance' : 'Monthly_Movement'
-      a.download = `${prefix}_${subjectName.replace(/\s/g, '_')}_${exportMonth}_${formCode.toUpperCase()}.xlsx`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err: any) {
-      alert(`${formCode.toUpperCase()} Export Error: ` + err.message)
-    } finally {
-      setExporting(false)
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -393,28 +322,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
         </div>
         <div className="flex flex-wrap items-center gap-2">
 
-          {/* Month picker for export */}
-          <div className="flex flex-col sm:flex-row items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #C8D4E0', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset' }}>
-            <div className="flex items-center gap-1.5 px-2.5 h-9 bg-white border-r border-slate-200">
-              <CalendarIcon size={13} style={{ color: '#8898AC' }} />
-              <input
-                type="month"
-                value={exportMonth}
-                onChange={e => setExportMonth(e.target.value)}
-                className="text-sm font-medium border-0 outline-none bg-transparent"
-                style={{ color: '#111A24' }}
-              />
-            </div>
-            <button
-              onClick={handleSF2Click}
-              disabled={exporting || globalStudents.length === 0}
-              className="h-9 px-4 text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
-              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
-            >
-              <FileDown size={14} />
-              Generate SF2
-            </button>
-          </div>
+
 
           {/* Save */}
           <button
@@ -531,95 +439,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
         </CardContent>
       </Card>
 
-      {/* SF2 Export Confirm Modal */}
-      <Dialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Generate Record</DialogTitle>
-            <p className="text-sm text-slate-500 mt-1">
-              Reminder: Are your Monthly Summary details (Drop-outs, Transferees) for {exportMonth} up to date?
-            </p>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 mt-2">
-            <button
-              onClick={() => {
-                setExportConfirmOpen(false)
-                handleExport('sf2', sf2Summary)
-              }}
-              disabled={exporting}
-              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
-            >
-              <FileDown size={14} />
-              Yes, Generate SF2 Now
-            </button>
-            <button
-              onClick={() => {
-                setExportConfirmOpen(false)
-                setSf2ModalOpen(true)
-              }}
-              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-slate-700 bg-slate-100 hover:bg-slate-200"
-            >
-              No, Update Summary First
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* SF2 Summary Modal */}
-      <Dialog open={sf2ModalOpen} onOpenChange={setSf2ModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Monthly Summary: {exportMonth}</DialogTitle>
-            <p className="text-sm text-slate-500 mt-1">Fill in details for this month before exporting.</p>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            {[
-              { label: 'Late Enrollment', mKey: 'lateEnrollmentM', fKey: 'lateEnrollmentF' },
-              { label: 'Drop Out', mKey: 'dropOutM', fKey: 'dropOutF' },
-              { label: 'Transferred Out', mKey: 'transferredOutM', fKey: 'transferredOutF' },
-              { label: 'Transferred In', mKey: 'transferredInM', fKey: 'transferredInF' },
-            ].map(({ label, mKey, fKey }) => (
-              <div key={mKey}>
-                <Label className="text-xs font-semibold text-slate-600">{label}</Label>
-                <div className="flex gap-2 mt-1">
-                  <div className="flex-1">
-                    <Label className="text-[10px] text-blue-600">Male</Label>
-                    <Input
-                      type="number" min={0}
-                      value={(sf2Summary as any)[mKey]}
-                      onChange={e => setSf2Summary(prev => ({ ...prev, [mKey]: Number(e.target.value) || 0 }))}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-[10px] text-pink-600">Female</Label>
-                    <Input
-                      type="number" min={0}
-                      value={(sf2Summary as any)[fKey]}
-                      onChange={e => setSf2Summary(prev => ({ ...prev, [fKey]: Number(e.target.value) || 0 }))}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => {
-                useTeacherStore.getState().setSf2Summary(exportMonth, sf2Summary)
-                setSf2ModalOpen(false)
-                handleExport('sf2', sf2Summary)
-              }}
-              disabled={exporting}
-              className="w-full h-10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-              style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
-            >
-              <FileDown size={14} />
-              {exporting ? 'Generating...' : 'Save & Export SF2'}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
