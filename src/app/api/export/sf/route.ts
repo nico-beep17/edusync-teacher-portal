@@ -746,9 +746,13 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
       ws.getCell(`A${rowNum}`).value = idx + 1
       ws.getCell(`B${rowNum}`).value = student.name
       const sBooks = books[student.lrn] || {}
-      // Collect all remarks across all subjects for this student
+      // Remarks only for unreturned/lost books (per DepEd SF3 guidelines)
       const allRemarks = bookTitles
-        .map(title => (sBooks[title] || {}).remarks)
+        .map(title => {
+          const rec = sBooks[title] || {}
+          // Only include remark if book was NOT returned
+          return (!rec.dateReturned && rec.remarks) ? rec.remarks : null
+        })
         .filter(Boolean)
         .join('; ')
       bookTitles.forEach((title, colIdx) => {

@@ -165,15 +165,18 @@ export default function SF3Page() {
               {/* Remarks */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  Remarks / Action Taken <span className="font-normal normal-case text-slate-400">(optional)</span>
+                  Remark / Action Taken <span className="font-normal normal-case text-slate-400">(for losses/unreturned only)</span>
                 </label>
                 <input
                   className="skeu-input h-10 px-3 text-sm rounded-lg w-full focus:outline-none bg-white border border-slate-200"
-                  placeholder="e.g. LLTR, FM, TDO…"
+                  placeholder="e.g. LLTR, TLTR, PTL…"
                   value={remarksField}
                   onChange={e => setRemarksField(e.target.value)}
                 />
-                <p className="text-[10px] text-slate-400">Codes: LLTR · TLTR · Custodian · PTL · FM · TDO · NEG</p>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Date Returned codes: <strong>FM</strong>=Force Majeure · <strong>TDO</strong>=Transferred/Dropout · <strong>NEG</strong>=Negligence<br/>
+                  Remark codes: <strong>LLTR</strong>=Secured Letter · <strong>TLTR</strong>=Teacher Letter · <strong>PTL</strong>=Paid by Learner
+                </p>
               </div>
 
               <button
