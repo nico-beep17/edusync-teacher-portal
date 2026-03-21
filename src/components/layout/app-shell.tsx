@@ -38,12 +38,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
            setChecking(false)
        }
        
-       supabase.auth.onAuthStateChange((event: string, session: any) => {
+       const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
            if (session) setUser(session.user)
            if (event === 'SIGNED_OUT') router.push('/login')
        })
+       return subscription
     }
-    checkAuth()
+    
+    let sub: any;
+    checkAuth().then(s => { sub = s })
+    
+    return () => { if (sub) sub.unsubscribe() }
   }, [pathname, isFullScreenPage, router, setUser])
 
   if (checking) {
