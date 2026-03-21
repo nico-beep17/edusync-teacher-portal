@@ -699,20 +699,26 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   ws.getCell('K7').value = si.gradeLevel || 'Grade 8'
   ws.getCell('N7').value = si.section || ''
 
-  // Collect all unique subject keys across all students
-  const allSubjects = new Set<string>()
-  students.forEach(s => {
-    const sBooks = books[s.lrn] || {}
-    Object.keys(sBooks).forEach(sub => allSubjects.add(sub))
-  })
-  const bookTitles = Array.from(allSubjects).slice(0, 8)
-  
-  // Title mapping columns: [ [colIssue, colReturn], ... ]
-  const cols = [
-      ['D', 'E'], ['F', 'G'], ['H', 'I'], ['J', 'K'], 
-      ['L', 'M'], ['N', 'O'], ['P', 'Q'], ['R', 'S']
+  // ── Fixed subject → column mapping matching the real SF3 template layout ─────
+  // Template columns confirmed by inspection: D/E=Filipino EL, F/G=Music Arts,
+  // H/I=Physical Education Health, J/K=Science, L/M=Filipino, N/O=ESP,
+  // P/Q=Mathematics, R/S=extra (8th slot)
+  const SUBJECT_COL_MAP: Record<string, [string, string]> = {
+    'Filipino EL':        ['D', 'E'],
+    'Music Arts':         ['F', 'G'],
+    'Physical Education': ['H', 'I'],
+    'Health':             ['H', 'I'],  // shares PE column (template says "PE Health")
+    'Science':            ['J', 'K'],
+    'Filipino':           ['L', 'M'],
+    'ESP':                ['N', 'O'],
+    'Mathematics':        ['P', 'Q'],
+  }
+  // All 8 column pairs in order (for pre-clearing)
+  const cols: [string, string][] = [
+    ['D', 'E'], ['F', 'G'], ['H', 'I'], ['J', 'K'],
+    ['L', 'M'], ['N', 'O'], ['P', 'Q'], ['R', 'S']
   ]
-  
+
   const fmtDate = (iso?: string) => {
     if (!iso) return ''
     try {
@@ -724,14 +730,12 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   // Remarks/Action Taken is column T in the SF3 template (confirmed from template inspection)
   // Column T contains richText so dynamic scanning won't match plain string search
   const remarksCol = 'T'
-  // Inject subject titles in headers
-  bookTitles.forEach((title, i) => {
-      ws.getCell(`${cols[i][0]}9`).value = `Subject Area & Title\n${title}`
-  })
+  // Don't overwrite the template's subject headers — they already have the correct book titles
+  // (removing the header injection that was overwriting rich-text headers)
 
   // Group students M then F
-  const males = students.filter(s => s.sex === 'M')
-  const females = students.filter(s => s.sex === 'F')
+  const males = students.filter((s: any) => s.sex === 'M')
+  const females = students.filter((s: any) => s.sex === 'F')
 
   let maleTotalRow = 12
   while(ws.getCell(`B${maleTotalRow}`).value !== null && !getCellText(ws.getCell(`B${maleTotalRow}`).value).toUpperCase().includes('TOTAL FOR MALE') && maleTotalRow < 100) {
@@ -759,34 +763,24 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   for (let r = femaleStartRow; r < femaleTotalRow; r++) clearRow(r)
 
   const injectRow = (student: any | null, rowNum: number, idx: number) => {
-    // Always clear ALL subject date columns first (D–S = 8 subjects × 2 cols)
-    cols.forEach(c => {
-      ws.getCell(`${c[0]}${rowNum}`).value = ''
-      ws.getCell(`${c[1]}${rowNum}`).value = ''
-    })
-    ws.getCell(`${remarksCol}${rowNum}`).value = ''
-
     if (student) {
       ws.getCell(`A${rowNum}`).value = idx + 1
       ws.getCell(`B${rowNum}`).value = student.name
-      ws.getCell(`C${rowNum}`).value = student.name // col C is merged with B in template
+      ws.getCell(`C${rowNum}`).value = student.name
       const sBooks = books[student.lrn] || {}
-      // Remarks only for unreturned/lost books (per DepEd SF3 guidelines)
-      const allRemarks = bookTitles
-        .map(title => {
-          const rec = sBooks[title] || {}
-          return (!rec.dateReturned && rec.remarks) ? rec.remarks : null
-        })
-        .filter(Boolean)
-        .join('; ')
-      bookTitles.forEach((title, colIdx) => {
-        const rec = sBooks[title] || {}
-        ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
-        ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
+      // Write each subject to its FIXED column from the template map
+      const remarksArr: string[] = []
+      Object.entries(sBooks).forEach(([subject, rec]: [string, any]) => {
+        const colPair = SUBJECT_COL_MAP[subject]
+        if (!colPair) return // unknown subject — skip
+        ws.getCell(`${colPair[0]}${rowNum}`).value = fmtDate(rec.dateIssued)
+        ws.getCell(`${colPair[1]}${rowNum}`).value = fmtDate(rec.dateReturned)
+        // Only collect remarks for unreturned books
+        if (!rec.dateReturned && rec.remarks) remarksArr.push(rec.remarks)
       })
-      console.log(`[SF3 DEBUG] Student=${student.name} sBooks=`, JSON.stringify(sBooks), `allRemarks="${allRemarks}"`)
+      const allRemarks = remarksArr.join('; ')
+      console.log(`[SF3 DEBUG] ${student.name} | sBooks=`, JSON.stringify(sBooks), `| remarks="${allRemarks}"`)
       ws.getCell(`${remarksCol}${rowNum}`).value = allRemarks || null
-
       ws.getCell(`${remarksCol}${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
       ws.getCell(`${remarksCol}${rowNum}`).font = { name: 'Arial', size: 8 }
     } else {
@@ -801,6 +795,7 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   for (let i = 0; i < (femaleTotalRow - femaleStartRow); i++) {
     injectRow(females[i] || null, femaleStartRow + i, i)
   }
+
 
   // "Prepared By" signature (teacher name)
   // Find the row containing "Prepared by" in the template, otherwise use a known fixed row
