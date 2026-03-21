@@ -3,7 +3,7 @@
 import { useState, use, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Send, FileDown, CheckCircle2, Plus, Minus, AlertTriangle, Scan, UserPlus, ChevronUp, ChevronDown } from "lucide-react"
+import { Send, FileDown, CheckCircle2, Plus, Minus, AlertTriangle, Scan, UserPlus, ChevronUp, ChevronDown, RotateCcw, Info } from "lucide-react"
 import { computeDepEdGrade } from "@/lib/deped-grading"
 import { useTeacherStore } from "@/store/useStore"
 
@@ -363,17 +363,29 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
         <TableCell className="text-center font-semibold text-purple-700 bg-purple-50/50 border-r">{grades.psQA.toFixed(2)}</TableCell>
         <TableCell className="text-center font-medium bg-slate-50 text-slate-600">{grades.initialGrade.toFixed(2)}</TableCell>
         <TableCell className="text-center bg-slate-100/80 p-1">
-          <input
-            type="number" min={60} max={100}
-            className={`h-8 w-14 mx-auto text-center font-bold text-lg rounded border-0 outline-none transition-colors focus:ring-2 focus:ring-[#003876] ${student.scores._qgOverride ? 'bg-amber-50 text-amber-700' : (grades.quarterGrade >= 75 ? 'bg-transparent text-[#003876]' : 'bg-transparent text-red-500')}`}
-            value={student.scores._qgOverride || grades.quarterGrade}
-            onChange={e => {
-              const val = parseInt(e.target.value)
-              if (isNaN(val)) return
-              handleScoreChange(student.lrn, '_qgOverride', val === grades.quarterGrade ? '0' : e.target.value)
-            }}
-            title={student.scores._qgOverride ? `Auto: ${grades.quarterGrade} (overridden)` : `Auto-transmuted from ${grades.initialGrade.toFixed(2)}`}
-          />
+          <div className="relative flex items-center justify-center group/qg">
+            <input
+              type="number" min={60} max={100}
+              className={`h-8 w-[60px] mx-auto py-0 pr-2 pb-0 text-center font-bold text-lg rounded border-0 outline-none transition-colors focus:ring-2 focus:ring-[#003876] z-10 ${student.scores._qgOverride ? 'bg-amber-50 text-amber-700' : (grades.quarterGrade >= 75 ? 'bg-transparent text-[#003876]' : 'bg-transparent text-red-500')}`}
+              style={{ flexShrink: 0 }}
+              value={student.scores._qgOverride || grades.quarterGrade}
+              onChange={e => {
+                const val = parseInt(e.target.value)
+                if (isNaN(val)) return
+                handleScoreChange(student.lrn, '_qgOverride', val === grades.quarterGrade ? '0' : e.target.value)
+              }}
+              title={student.scores._qgOverride ? `Auto: ${grades.quarterGrade} (overridden)` : `Auto-transmuted from ${grades.initialGrade.toFixed(2)}`}
+            />
+            {student.scores._qgOverride ? (
+              <button
+                onClick={() => handleScoreChange(student.lrn, '_qgOverride', '0')}
+                title="Revert to computed grade"
+                className="absolute right-0 text-amber-600 hover:text-amber-800 hover:bg-amber-200 bg-amber-100 rounded-full p-[3px] opacity-0 group-hover/qg:opacity-100 transition-opacity z-20 shadow-sm"
+              >
+                <RotateCcw size={10} strokeWidth={3} />
+              </button>
+            ) : null}
+          </div>
         </TableCell>
       </TableRow>
     )
@@ -519,7 +531,29 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
                   <TableHead className="text-center w-[80px] bg-purple-50/20 font-medium">Score</TableHead>
                   <TableHead className="text-center w-[80px] bg-purple-100/50 font-bold border-r">PS</TableHead>
                   <TableHead className="text-center w-[80px] font-semibold text-xs leading-tight">Initial Grade</TableHead>
-                  <TableHead className="text-center w-[80px] font-bold text-slate-900 bg-slate-100/80 leading-tight">Quarter Grade</TableHead>
+                  <TableHead className="text-center w-[90px] font-bold text-slate-900 bg-slate-100/80 leading-tight">
+                    <div className="flex items-center justify-center gap-1 group/legend relative cursor-help w-full h-full">
+                      Quarter<br/>Grade
+                      <Info size={11} className="text-slate-400" />
+                      
+                      {/* Hover Legend */}
+                      <div className="absolute top-[120%] right-0 w-64 bg-slate-800 border border-slate-700 text-white text-[10px] font-normal text-left p-3 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] hidden group-hover/legend:block z-[100] cursor-default pointer-events-none">
+                        <p className="font-bold mb-1 text-xs" style={{ color: "#FFF" }}>DepEd Transmutation</p>
+                        <p className="mb-2 text-slate-300 leading-snug">The Initial Grade is transmuted based on DepEd Order No. 8, s. 2015.</p>
+                        <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-slate-400">
+                          <div><strong className="text-slate-300">Initial Grade</strong></div>
+                          <div><strong className="text-slate-300">Transmuted</strong></div>
+                          <div className="h-px bg-slate-700 col-span-2 my-0.5" />
+                          <div>100.00</div><div>100</div>
+                          <div>98.40 – 99.99</div><div>99</div>
+                          <div>96.80 – 98.39</div><div>98</div>
+                          <div>...</div><div>...</div>
+                          <div>60.00 – 61.59</div><div className="text-emerald-400 font-semibold">75 (Passed)</div>
+                          <div>0.00 – 59.99</div><div className="text-red-400 font-semibold">60-74 (Failed)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </TableHead>
                 </TableRow>
                 {/* HPS Row */}
                 <TableRow className="bg-amber-50/30">
