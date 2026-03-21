@@ -742,6 +742,13 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   }
 
   const injectRow = (student: any | null, rowNum: number, idx: number) => {
+    // Always clear ALL subject date columns first (D–S = 8 subjects × 2 cols)
+    cols.forEach(c => {
+      ws.getCell(`${c[0]}${rowNum}`).value = ''
+      ws.getCell(`${c[1]}${rowNum}`).value = ''
+    })
+    ws.getCell(`T${rowNum}`).value = ''
+
     if (student) {
       ws.getCell(`A${rowNum}`).value = idx + 1
       ws.getCell(`B${rowNum}`).value = student.name
@@ -750,7 +757,6 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
       const allRemarks = bookTitles
         .map(title => {
           const rec = sBooks[title] || {}
-          // Only include remark if book was NOT returned
           return (!rec.dateReturned && rec.remarks) ? rec.remarks : null
         })
         .filter(Boolean)
@@ -760,15 +766,12 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
         ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
         ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
       })
-      // Remarks column is column T (the last column in the template)
       ws.getCell(`T${rowNum}`).value = allRemarks
       ws.getCell(`T${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
       ws.getCell(`T${rowNum}`).font = { name: 'Arial', size: 8 }
     } else {
       ws.getCell(`A${rowNum}`).value = ''
       ws.getCell(`B${rowNum}`).value = ''
-      ws.getCell(`T${rowNum}`).value = ''
-      cols.forEach(c => { ws.getCell(`${c[0]}${rowNum}`).value = ''; ws.getCell(`${c[1]}${rowNum}`).value = '' })
     }
   }
 
