@@ -19,6 +19,7 @@ export default function SF3Page() {
   const [dateField, setDateField] = useState(() => new Date().toISOString().split('T')[0])
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [focusedRemarksSubject, setFocusedRemarksSubject] = useState<string | null>(null)
 
   useEffect(() => setMounted(true), [])
 
@@ -233,13 +234,32 @@ export default function SF3Page() {
                           </TableCell>
                           <TableCell className="py-2">
                             {!b.dateReturned ? (
-                              <input
-                                className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
-                                placeholder="LLTR / TLTR / PTL…"
-                                defaultValue={b.remarks}
-                                onBlur={e => handleSetRemarks(b.subject, e.target.value)}
-                                title="Remark/Action Taken for losses or unreturned books"
-                              />
+                              <div className="relative">
+                                <input
+                                  className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
+                                  placeholder="LLTR / TLTR / PTL…"
+                                  defaultValue={b.remarks}
+                                  onFocus={() => setFocusedRemarksSubject(b.subject)}
+                                  onBlur={e => { handleSetRemarks(b.subject, e.target.value); setFocusedRemarksSubject(null) }}
+                                />
+                                {focusedRemarksSubject === b.subject && (
+                                  <div className="absolute z-50 bottom-full mb-1.5 left-0 w-72 rounded-xl border border-amber-200 bg-amber-50 shadow-lg p-3 text-[10px] text-slate-700 leading-relaxed">
+                                    <p className="font-bold text-amber-800 mb-1.5 text-[11px]">📋 Remark / Action Taken Codes</p>
+                                    <div className="mb-1">
+                                      <span className="font-bold text-slate-600">In Date Returned column:</span><br/>
+                                      <span><strong>FM</strong> = Force Majeure</span><br/>
+                                      <span><strong>TDO</strong> = Transferred / Dropout</span><br/>
+                                      <span><strong>NEG</strong> = Negligence</span>
+                                    </div>
+                                    <div className="border-t border-amber-200 pt-1 mt-1">
+                                      <span className="font-bold text-slate-600">In Remark column:</span><br/>
+                                      <span><strong>LLTR</strong> = Secured Letter from Learner (for FM)</span><br/>
+                                      <span><strong>TLTR</strong> = Teacher Letter to School Head (for TDO)</span><br/>
+                                      <span><strong>PTL</strong> = Paid by the Learner (for NEG)</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-[11px] text-slate-400">{b.remarks || '—'}</span>
                             )}
