@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { useState, useEffect, useMemo } from "react"
 import { useTeacherStore } from "@/store/useStore"
-import { Book, Save, BookOpen, Clock, Download } from "lucide-react"
+import { Book, Save, BookOpen, Clock, Download, Trash2 } from "lucide-react"
 
 export default function SF3Page() {
   const [mounted, setMounted] = useState(false)
@@ -13,6 +13,7 @@ export default function SF3Page() {
   const schoolInfo = useTeacherStore(s => s.schoolInfo)
   const setSf3Record = useTeacherStore(s => s.setSf3Record)
   const sf3Subjects = useTeacherStore(s => s.sf3Subjects)
+  const clearSf3Books = useTeacherStore(s => s.clearSf3Books)
 
   const [selectedLrn, setSelectedLrn] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
@@ -99,6 +100,15 @@ export default function SF3Page() {
             onChange={e => setDateField(e.target.value)}
             className="skeu-input w-[140px] h-9 text-sm"
           />
+          <button
+            onClick={() => {
+              if (confirm('Clear all SF3 book data? This cannot be undone.'))
+                clearSf3Books()
+            }}
+            className="h-9 px-3 rounded-lg text-sm font-semibold flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+          >
+            <Trash2 size={13} /> Clear Data
+          </button>
           <button
             onClick={handleExport}
             disabled={exporting}

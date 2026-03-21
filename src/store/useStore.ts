@@ -89,6 +89,7 @@ interface TeacherState {
   removeBook: (lrn: string, bookId: string) => void
   setSf3Record: (lrn: string, subjectKey: string, record: SF3Record) => void
   setSf3Subjects: (subjects: string[]) => void
+  clearSf3Books: () => void
   addWorkload: (entry: WorkloadEntry) => void
   removeWorkload: (id: string) => void
   setTeacherPin: (pin: string) => void
@@ -399,6 +400,8 @@ export const useTeacherStore = create<TeacherState>()(
       })),
 
       setSf3Subjects: (subjects) => set({ sf3Subjects: subjects }),
+
+      clearSf3Books: () => set({ books: {} }),
 
       addWorkload: (entry) => set((state) => ({
         workload: [...state.workload, entry]
