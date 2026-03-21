@@ -47,6 +47,7 @@ interface TeacherState {
   students: Student[]
   grades: Record<string, GradeEntry[]>
   attendance: Record<string, AttendanceEntry[]>
+  subjectAttendance: Record<string, Record<string, AttendanceEntry[]>>
   books: Record<string, BookEntry[]>
   workload: WorkloadEntry[]
   teacherPin: string
@@ -77,6 +78,7 @@ interface TeacherState {
   removeStudent: (lrn: string) => void
   updateGrade: (lrn: string, gradeData: GradeEntry) => void
   updateAttendance: (lrn: string, record: AttendanceEntry) => void
+  updateSubjectAttendance: (subject: string, lrn: string, record: AttendanceEntry) => void
   issueBook: (lrn: string, book: Omit<BookEntry, 'id'>) => void
   returnBook: (lrn: string, bookId: string, date: string) => void
   removeBook: (lrn: string, bookId: string) => void
@@ -230,6 +232,7 @@ export const useTeacherStore = create<TeacherState>()(
         })
         return att
       })(),
+      subjectAttendance: {},
       workload: [
         { id: "1", subject: "Filipino 8", section: "ARIES", students: 16, schedule: "M/W/F 8:00-9:00 AM", slug: "filipino-8-aries", gradient: "from-blue-500 to-cyan-500" },
         { id: "2", subject: "MAPEH 8", section: "TAURUS", students: 40, schedule: "T/TH 10:00-11:30 AM", slug: "mapeh-8-taurus", gradient: "from-blue-500 to-teal-500" },
@@ -328,6 +331,29 @@ export const useTeacherStore = create<TeacherState>()(
           attendance: {
             ...state.attendance,
             [lrn]: newAtt
+          }
+        }
+      }),
+
+      updateSubjectAttendance: (subject, lrn, record) => set((state) => {
+        const subjectAtt = state.subjectAttendance[subject] || {}
+        const studentAtt = subjectAtt[lrn] || []
+        const existingIdx = studentAtt.findIndex(a => a.date === record.date)
+        
+        let newAtt = [...studentAtt]
+        if (existingIdx >= 0) {
+          newAtt[existingIdx] = record
+        } else {
+          newAtt.push(record)
+        }
+
+        return {
+          subjectAttendance: {
+            ...state.subjectAttendance,
+            [subject]: {
+              ...subjectAtt,
+              [lrn]: newAtt
+            }
           }
         }
       }),

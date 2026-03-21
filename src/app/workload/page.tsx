@@ -202,10 +202,9 @@ export default function WorkloadDashboard() {
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {workload.map((w) => (
-            <div key={w.id} className="group relative">
-              <Link href={`/ecr/${w.slug}`} className="block">
+            <div key={w.id} className="group relative flex flex-col">
                 <div
-                  className="h-full rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 relative"
+                  className="flex-1 rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 relative"
                   style={{
                     background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
                     border: "1px solid #DDE4EE",
@@ -217,37 +216,38 @@ export default function WorkloadDashboard() {
                   {/* Color accent top bar */}
                   <div className={`w-full h-1.5 bg-gradient-to-r ${w.gradient}`} />
 
-                  <div className="p-5">
+                  <div className="p-5 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <p className="text-xl font-black" style={{ color: "#111A24" }}>{w.subject}</p>
                         <p className="text-sm font-semibold mt-0.5" style={{ color: "#5A6A7E" }}>Section: {w.section}</p>
                       </div>
-                      <div className={`p-2 rounded-lg bg-gradient-to-r ${w.gradient} text-white shrink-0`}>
-                        <FileOutput size={14} />
-                      </div>
                     </div>
 
                     <div className="skeu-divider mb-3" />
 
-                    <div className="flex flex-col gap-1.5 text-sm" style={{ color: "#8898AC" }}>
+                    <div className="flex flex-col gap-1.5 text-sm mb-6" style={{ color: "#8898AC" }}>
                       <div className="flex items-center gap-2">
                         <Users size={13} /> {w.students} Enrolled Students
                       </div>
                       <div className="text-xs">{w.schedule}</div>
                     </div>
 
-                    <div className="mt-5 flex items-center text-sm font-bold gap-1" style={{ color: "#003876" }}>
-                      Open E-Class Record <ArrowRight size={14} />
+                    <div className="flex gap-2 mt-auto pt-2 border-t border-slate-100">
+                      <Link href={`/ecr/${w.slug}`} className="skeu-btn flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
+                        <FileOutput size={12} /> E-Class Record
+                      </Link>
+                      <Link href={`/attendance/${w.slug}`} className="skeu-btn-ghost flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors hover:bg-slate-50 active:scale-95 text-slate-700 bg-white">
+                        <Users size={12} /> Attendance
+                      </Link>
                     </div>
                   </div>
                 </div>
-              </Link>
 
               {/* Delete button — shows on hover, opens modal */}
               <button
                 onClick={(e) => handleDeleteClick(e, w)}
-                className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8 rounded-lg flex items-center justify-center"
+                className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8 rounded-lg flex items-center justify-center"
                 style={{
                   background: "linear-gradient(180deg, #FFF0F0, #FFE4E4)",
                   border: "1px solid #E8AAAA",
