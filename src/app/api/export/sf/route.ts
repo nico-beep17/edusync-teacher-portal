@@ -674,7 +674,8 @@ async function buildSF5(students: any[], schoolInfo: any) {
 }
 
 // ─── SF3 Route (Books Issued) ─────────────────────────────────────────────────
-async function buildSF3(students: any[], books: Record<string, any[]>, schoolInfo: any) {
+// books is now: Record<lrn, Record<subjectKey, { dateIssued?, dateReturned? }>>
+async function buildSF3(students: any[], books: Record<string, Record<string, any>>, schoolInfo: any) {
   const path = require('path')
   const fs = require('fs')
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
@@ -698,14 +699,13 @@ async function buildSF3(students: any[], books: Record<string, any[]>, schoolInf
   ws.getCell('K7').value = si.gradeLevel || 'Grade 8'
   ws.getCell('N7').value = si.section || ''
 
-  // Collect up to 8 unique book titles
-  const allBooks = new Set<string>()
+  // Collect all unique subject keys across all students
+  const allSubjects = new Set<string>()
   students.forEach(s => {
-      (books[s.lrn] || []).forEach(b => {
-          if (b.title) allBooks.add(b.title.trim())
-      })
+    const sBooks = books[s.lrn] || {}
+    Object.keys(sBooks).forEach(sub => allSubjects.add(sub))
   })
-  const bookTitles = Array.from(allBooks).slice(0, 8)
+  const bookTitles = Array.from(allSubjects).slice(0, 8)
   
   // Title mapping columns: [ [colIssue, colReturn], ... ]
   const cols = [
@@ -713,7 +713,15 @@ async function buildSF3(students: any[], books: Record<string, any[]>, schoolInf
       ['L', 'M'], ['N', 'O'], ['P', 'Q'], ['R', 'S']
   ]
   
-  // Inject book titles in headers
+  const fmtDate = (iso?: string) => {
+    if (!iso) return ''
+    try {
+      const d = new Date(iso + 'T00:00:00')
+      return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '2-digit' })
+    } catch { return iso }
+  }
+
+  // Inject subject titles in headers
   bookTitles.forEach((title, i) => {
       ws.getCell(`${cols[i][0]}9`).value = `Subject Area & Title\n${title}`
   })
@@ -733,56 +741,28 @@ async function buildSF3(students: any[], books: Record<string, any[]>, schoolInf
       femaleTotalRow++
   }
 
-  // Inject Males
-  for(let i = 0; i < (maleTotalRow - 12); i++) {
-        const student = males[i]
-        const r = 12 + i
-        if (student) {
-            ws.getCell(`A${r}`).value = i + 1
-            ws.getCell(`B${r}`).value = student.name
-            const sBooks = books[student.lrn] || []
-            bookTitles.forEach((title, colIdx) => {
-                const match = sBooks.find(b => b.title.trim() === title)
-                if (match) {
-                    ws.getCell(`${cols[colIdx][0]}${r}`).value = match.dateIssued ? match.dateIssued.replace('2026-', '').replace('2025-', '') : ''
-                    ws.getCell(`${cols[colIdx][1]}${r}`).value = match.dateReturned ? match.dateReturned.replace('2026-', '').replace('2025-', '') : ''
-                } else {
-                    ws.getCell(`${cols[colIdx][0]}${r}`).value = ''
-                    ws.getCell(`${cols[colIdx][1]}${r}`).value = ''
-                }
-            })
-        } else {
-            // Clear row
-            ws.getCell(`A${r}`).value = ''
-            ws.getCell(`B${r}`).value = ''
-            cols.forEach(c => { ws.getCell(`${c[0]}${r}`).value = ''; ws.getCell(`${c[1]}${r}`).value = ''; })
-        }
+  const injectRow = (student: any | null, rowNum: number, idx: number) => {
+    if (student) {
+      ws.getCell(`A${rowNum}`).value = idx + 1
+      ws.getCell(`B${rowNum}`).value = student.name
+      const sBooks = books[student.lrn] || {}
+      bookTitles.forEach((title, colIdx) => {
+        const rec = sBooks[title] || {}
+        ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
+        ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
+      })
+    } else {
+      ws.getCell(`A${rowNum}`).value = ''
+      ws.getCell(`B${rowNum}`).value = ''
+      cols.forEach(c => { ws.getCell(`${c[0]}${rowNum}`).value = ''; ws.getCell(`${c[1]}${rowNum}`).value = '' })
+    }
   }
 
-  // Inject Females
-  for(let i = 0; i < (femaleTotalRow - femaleStartRow); i++) {
-        const student = females[i]
-        const r = femaleStartRow + i
-        if (student) {
-            ws.getCell(`A${r}`).value = i + 1
-            ws.getCell(`B${r}`).value = student.name
-            const sBooks = books[student.lrn] || []
-            bookTitles.forEach((title, colIdx) => {
-                const match = sBooks.find(b => b.title.trim() === title)
-                if (match) {
-                    ws.getCell(`${cols[colIdx][0]}${r}`).value = match.dateIssued ? match.dateIssued.replace('2026-', '').replace('2025-', '') : ''
-                    ws.getCell(`${cols[colIdx][1]}${r}`).value = match.dateReturned ? match.dateReturned.replace('2026-', '').replace('2025-', '') : ''
-                } else {
-                    ws.getCell(`${cols[colIdx][0]}${r}`).value = ''
-                    ws.getCell(`${cols[colIdx][1]}${r}`).value = ''
-                }
-            })
-        } else {
-            // Clear row
-            ws.getCell(`A${r}`).value = ''
-            ws.getCell(`B${r}`).value = ''
-            cols.forEach(c => { ws.getCell(`${c[0]}${r}`).value = ''; ws.getCell(`${c[1]}${r}`).value = ''; })
-        }
+  for (let i = 0; i < (maleTotalRow - 12); i++) {
+    injectRow(males[i] || null, 12 + i, i)
+  }
+  for (let i = 0; i < (femaleTotalRow - femaleStartRow); i++) {
+    injectRow(females[i] || null, femaleStartRow + i, i)
   }
 
   return wb

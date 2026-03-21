@@ -33,6 +33,10 @@ export type BookEntry = {
   dateReturned?: string
 }
 
+// SF3 Subject Matrix: lrn -> subjectKey -> { dateIssued?, dateReturned? }
+export type SF3Record = { dateIssued?: string; dateReturned?: string }
+export type SF3Books = Record<string, Record<string, SF3Record>>
+
 export type WorkloadEntry = {
   id: string
   subject: string
@@ -48,7 +52,8 @@ interface TeacherState {
   grades: Record<string, GradeEntry[]>
   attendance: Record<string, AttendanceEntry[]>
   subjectAttendance: Record<string, Record<string, AttendanceEntry[]>>
-  books: Record<string, BookEntry[]>
+  books: SF3Books
+  sf3Subjects: string[]
   workload: WorkloadEntry[]
   teacherPin: string
   user: any | null
@@ -82,6 +87,8 @@ interface TeacherState {
   issueBook: (lrn: string, book: Omit<BookEntry, 'id'>) => void
   returnBook: (lrn: string, bookId: string, date: string) => void
   removeBook: (lrn: string, bookId: string) => void
+  setSf3Record: (lrn: string, subjectKey: string, record: SF3Record) => void
+  setSf3Subjects: (subjects: string[]) => void
   addWorkload: (entry: WorkloadEntry) => void
   removeWorkload: (id: string) => void
   setTeacherPin: (pin: string) => void
@@ -116,6 +123,16 @@ export const useTeacherStore = create<TeacherState>()(
         sf2Summaries: { ...state.sf2Summaries, [month]: summary }
       })),
       books: {},
+      sf3Subjects: [
+        'Filipino EL',
+        'Music Arts',
+        'Physical Education',
+        'Health',
+        'Science',
+        'Filipino',
+        'ESP',
+        'Mathematics',
+      ],
       students: [
         { lrn: "101010101010", name: "ANUBLING, REGIE C.", sex: "M", status: "ENROLLED" },
         { lrn: "101010101011", name: "BARRIENTOS, JOHN PAUL M.", sex: "M", status: "ENROLLED" },
@@ -359,30 +376,29 @@ export const useTeacherStore = create<TeacherState>()(
       }),
 
       issueBook: (lrn, book) => set((state) => {
-        const studentBooks = state.books[lrn] || []
-        const newBook: BookEntry = { ...book, id: Math.random().toString(36).substring(7) }
-        return { books: { ...state.books, [lrn]: [...studentBooks, newBook] } }
+        // Legacy compat - not used in new SF3 but kept for type safety
+        return state
       }),
 
       returnBook: (lrn, bookId, date) => set((state) => {
-        const studentBooks = state.books[lrn] || []
-        return {
-          books: {
-            ...state.books,
-            [lrn]: studentBooks.map(b => b.id === bookId ? { ...b, dateReturned: date } : b)
-          }
-        }
+        return state
       }),
 
       removeBook: (lrn, bookId) => set((state) => {
-        const studentBooks = state.books[lrn] || []
-        return {
-          books: {
-            ...state.books,
-            [lrn]: studentBooks.filter(b => b.id !== bookId)
+        return state
+      }),
+
+      setSf3Record: (lrn, subjectKey, record) => set((state) => ({
+        books: {
+          ...state.books,
+          [lrn]: {
+            ...(state.books[lrn] || {}),
+            [subjectKey]: record
           }
         }
-      }),
+      })),
+
+      setSf3Subjects: (subjects) => set({ sf3Subjects: subjects }),
 
       addWorkload: (entry) => set((state) => ({
         workload: [...state.workload, entry]

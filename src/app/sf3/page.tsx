@@ -1,231 +1,393 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTeacherStore } from "@/store/useStore"
-import { Book, Save, BookOpen, Clock, Download } from "lucide-react"
+import { Download, Settings2, CheckCircle2, X, Plus, Trash2 } from "lucide-react"
+
+const formatDateShort = (iso: string) => {
+  if (!iso) return ""
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '2-digit' })
+}
+
+function DateCellInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const ref = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing) ref.current?.focus()
+  }, [editing])
+
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onBlur={() => setEditing(false)}
+        className="w-full text-[10px] border border-blue-400 rounded px-1 py-0.5 outline-none bg-white"
+        style={{ minWidth: 90 }}
+      />
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="w-full text-center text-[10px] px-1 py-1 rounded transition-colors hover:bg-blue-50 group"
+      title={placeholder}
+    >
+      {value ? (
+        <span className="text-slate-700 font-medium">{formatDateShort(value)}</span>
+      ) : (
+        <span className="text-slate-300 group-hover:text-blue-400">—</span>
+      )}
+    </button>
+  )
+}
 
 export default function SF3Page() {
   const [mounted, setMounted] = useState(false)
   const students = useTeacherStore(s => s.students)
   const books = useTeacherStore(s => s.books)
+  const sf3Subjects = useTeacherStore(s => s.sf3Subjects)
   const schoolInfo = useTeacherStore(s => s.schoolInfo)
-  const issueBook = useTeacherStore(s => s.issueBook)
-  const returnBook = useTeacherStore(s => s.returnBook)
-  
-  const [selectedLrn, setSelectedLrn] = useState<string>('')
-  const [bookTitle, setBookTitle] = useState('')
-  const [dateField, setDateField] = useState(() => new Date().toISOString().split('T')[0])
+  const setSf3Record = useTeacherStore(s => s.setSf3Record)
+  const setSf3Subjects = useTeacherStore(s => s.setSf3Subjects)
 
-  useEffect(() => setMounted(true), [])
+  const [saved, setSaved] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [editingSubjects, setEditingSubjects] = useState(false)
+  const [subjectDraft, setSubjectDraft] = useState<string[]>([])
+  const [newSubject, setNewSubject] = useState("")
 
-  const handleIssueSubmit = () => {
-      if (!selectedLrn || !bookTitle.trim()) return;
-      issueBook(selectedLrn, { title: bookTitle.trim(), dateIssued: dateField })
-      setBookTitle('')
-  }
+  useEffect(() => { setMounted(true) }, [])
 
-  const selectedStudentName = useMemo(() => {
-     return students.find(s => s.lrn === selectedLrn)?.name || ''
-  }, [students, selectedLrn])
-
-  const studentBooks = selectedLrn ? (books[selectedLrn] || []) : []
-
-  const handleReturn = (lrn: string, bookId: string) => {
-      returnBook(lrn, bookId, dateField)
+  const handleSetRecord = (lrn: string, subject: string, field: 'dateIssued' | 'dateReturned', value: string) => {
+    const existing = books[lrn]?.[subject] || {}
+    setSf3Record(lrn, subject, { ...existing, [field]: value || undefined })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
   }
 
   const handleExport = async () => {
-      try {
-          const res = await fetch('/api/export/sf', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ form: 'sf3', students, books, schoolInfo })
-          });
-          if (!res.ok) throw new Error("SF3 Export failed");
-          const blob = await res.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `Books_Issued_Grade8_ARIES_SF3.xlsx`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(url);
-      } catch (err: any) {
-          alert("Export Error: " + err.message);
-      }
+    setExporting(true)
+    try {
+      const res = await fetch('/api/export/sf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form: 'sf3', students, books, schoolInfo })
+      })
+      if (!res.ok) throw new Error("SF3 Export failed")
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Books_Issued_Grade${schoolInfo.gradeLevel}_${schoolInfo.section}_SF3.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert("Export Error: " + err.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const males = students.filter(s => s.sex === 'M')
+  const females = students.filter(s => s.sex === 'F')
+
+  const openSubjectEditor = () => {
+    setSubjectDraft([...sf3Subjects])
+    setEditingSubjects(true)
+  }
+
+  const saveSubjects = () => {
+    const cleaned = subjectDraft.map(s => s.trim()).filter(Boolean)
+    setSf3Subjects(cleaned)
+    setEditingSubjects(false)
   }
 
   if (!mounted) return null
 
+  const renderStudentRows = (list: typeof students, startIdx: number) =>
+    list.map((student, i) => {
+      const row = books[student.lrn] || {}
+      return (
+        <tr key={student.lrn} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+          <td
+            className="text-center text-[11px] text-slate-400 font-medium border-r border-b border-slate-200 py-1 px-1 sticky left-0 z-10"
+            style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', minWidth: 36 }}
+          >
+            {startIdx + i + 1}
+          </td>
+          <td
+            className="text-[11px] font-semibold text-slate-800 border-r border-b border-slate-200 px-2 py-1 whitespace-nowrap sticky"
+            style={{ left: 36, background: i % 2 === 0 ? '#fff' : '#f8fafc', minWidth: 200, zIndex: 10 }}
+          >
+            {student.name}
+          </td>
+          {sf3Subjects.map(subject => {
+            const rec = row[subject] || {}
+            return (
+              <>
+                <td
+                  key={subject + '-issued'}
+                  className="border-r border-b border-slate-100 p-0"
+                  style={{ minWidth: 96 }}
+                >
+                  <DateCellInput
+                    value={rec.dateIssued || ''}
+                    onChange={v => handleSetRecord(student.lrn, subject, 'dateIssued', v)}
+                    placeholder="Click to set Issued date"
+                  />
+                </td>
+                <td
+                  key={subject + '-returned'}
+                  className="border-r border-b border-slate-100 p-0"
+                  style={{ minWidth: 96, borderRight: '2px solid #DDE4EE' }}
+                >
+                  <DateCellInput
+                    value={rec.dateReturned || ''}
+                    onChange={v => handleSetRecord(student.lrn, subject, 'dateReturned', v)}
+                    placeholder="Click to set Returned date"
+                  />
+                </td>
+              </>
+            )
+          })}
+          {/* Remarks column */}
+          <td className="border-b border-slate-100 px-2 py-1 text-[10px] text-slate-400 min-w-[120px]" />
+        </tr>
+      )
+    })
+
   return (
-    <div className="flex flex-col gap-6 max-w-5xl">
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: '#111A24' }}>School Form 3 (SF3)</h1>
-          <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Books Issued and Returned Data Entry</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: '#111A24' }}>
+            School Form 3 <span className="text-lg font-semibold text-slate-400">(SF3)</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: '#8898AC' }}>
+            Books Issued and Returned — Grade {schoolInfo.gradeLevel} {schoolInfo.section} · {schoolInfo.schoolYear}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Input 
-             type="date" 
-             value={dateField} 
-             onChange={e => setDateField(e.target.value)}
-             className="skeu-input w-[140px] h-9 text-sm"
-          />
-          <button 
-             onClick={handleExport} 
-             className="skeu-btn h-9 px-4 rounded-lg text-sm font-bold flex items-center gap-2 transition-transform active:scale-95" 
-             style={{ background: 'linear-gradient(180deg, #E30A24, #B5081C)', color: '#FFF' }}
+          {saved && (
+            <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">
+              <CheckCircle2 size={12} /> Auto-saved
+            </span>
+          )}
+          <button
+            onClick={openSubjectEditor}
+            className="h-9 px-3 rounded-lg text-sm font-semibold flex items-center gap-1.5 border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+            style={{ color: '#5A6A7E' }}
           >
-             <Download size={14} /> Export SF3 Excel
+            <Settings2 size={14} /> Manage Subjects
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="h-9 px-4 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+            style={{ background: 'linear-gradient(180deg,#E30A24,#B5081C)', color: '#fff' }}
+          >
+            <Download size={14} />
+            {exporting ? 'Generating…' : 'Export SF3 Excel'}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {/* Left Column: Data Entry Form */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)", border: "1px solid #DDE4EE", boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.08)" }}>
-            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-base font-black flex items-center gap-2" style={{ color: '#111A24' }}>
-                <BookOpen size={16} className="text-indigo-500" />
-                Issue a Book
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">Select a learner and assign a book to them.</p>
-            </div>
-            
-            <div className="p-5 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Select Learner</label>
-                <div className="relative">
-                  <select 
-                    className="skeu-input h-10 px-3 text-sm rounded-lg w-full focus:outline-none appearance-none pr-8 bg-white"
-                    value={selectedLrn}
-                    onChange={e => setSelectedLrn(e.target.value)}
-                    style={{ color: selectedLrn ? '#111A24' : '#8898AC' }}
+      {/* School Info bar */}
+      <div className="rounded-xl px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 text-xs" style={{ background: '#F4F7FA', border: '1px solid #DDE4EE' }}>
+        <span><span className="font-bold text-slate-500">School:</span> <span className="text-slate-800">{schoolInfo.schoolName}</span></span>
+        <span><span className="font-bold text-slate-500">School ID:</span> <span className="text-slate-800">{schoolInfo.schoolId}</span></span>
+        <span><span className="font-bold text-slate-500">Grade Level:</span> <span className="text-slate-800">{schoolInfo.gradeLevel}</span></span>
+        <span><span className="font-bold text-slate-500">Section:</span> <span className="text-slate-800">{schoolInfo.section}</span></span>
+        <span><span className="font-bold text-slate-500">School Year:</span> <span className="text-slate-800">{schoolInfo.schoolYear}</span></span>
+      </div>
+
+      {/* How to use tip */}
+      <div className="text-xs text-slate-500 bg-blue-50/60 border border-blue-200/50 rounded-lg px-4 py-2.5 flex items-center gap-2">
+        <span className="text-blue-500 font-bold">💡 Tip:</span>
+        Click any cell under a subject column to set the date a book was issued or returned. Dates auto-save instantly.
+      </div>
+
+      {/* Matrix Table */}
+      <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="border-collapse w-full" style={{ minWidth: 700 }}>
+            <thead>
+              {/* Subject row */}
+              <tr className="bg-slate-800">
+                <th
+                  className="text-center text-[10px] font-bold text-slate-300 uppercase border-r border-slate-600 py-2 px-1 sticky left-0 z-20 bg-slate-800"
+                  style={{ minWidth: 36 }}
+                  rowSpan={2}
+                >
+                  No.
+                </th>
+                <th
+                  className="text-left text-[10px] font-bold text-slate-300 uppercase border-r border-slate-600 px-3 py-2 sticky z-20 bg-slate-800"
+                  style={{ left: 36, minWidth: 200 }}
+                  rowSpan={2}
+                >
+                  Learner&apos;s Name
+                  <span className="block font-normal text-slate-500 text-[9px] normal-case">(Last Name, First Name, Middle Name)</span>
+                </th>
+                {sf3Subjects.map(sub => (
+                  <th
+                    key={sub}
+                    colSpan={2}
+                    className="text-center text-[10px] font-bold text-white px-2 py-2 border-l-2 border-slate-600"
+                    style={{ borderRight: '2px solid #475569' }}
                   >
-                    <option value="" disabled>-- Select a student --</option>
-                    <optgroup label="Males">
-                      {students.filter(s => s.sex === 'M').map(s => <option key={s.lrn} value={s.lrn}>{s.name}</option>)}
-                    </optgroup>
-                    <optgroup label="Females">
-                      {students.filter(s => s.sex === 'F').map(s => <option key={s.lrn} value={s.lrn}>{s.name}</option>)}
-                    </optgroup>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                  </div>
+                    <div className="leading-tight">{sub}</div>
+                  </th>
+                ))}
+                <th
+                  className="text-center text-[10px] font-bold text-slate-300 uppercase border-l-2 border-slate-600 px-2 py-2"
+                  rowSpan={2}
+                  style={{ minWidth: 120 }}
+                >
+                  Remarks/<br/>Action Taken
+                </th>
+              </tr>
+              {/* Issued/Returned sub-row */}
+              <tr className="bg-slate-700">
+                {sf3Subjects.map(sub => (
+                  <>
+                    <th
+                      key={sub + '-issued'}
+                      className="text-center text-[10px] text-blue-300 font-bold py-1.5 px-1 border-l-2 border-slate-600"
+                      style={{ minWidth: 96 }}
+                    >
+                      Date Issued
+                    </th>
+                    <th
+                      key={sub + '-ret'}
+                      className="text-center text-[10px] text-amber-300 font-bold py-1.5 px-1"
+                      style={{ minWidth: 96, borderRight: '2px solid #475569' }}
+                    >
+                      Date Returned
+                    </th>
+                  </>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Male section */}
+              <tr className="bg-blue-50">
+                <td
+                  colSpan={2 + sf3Subjects.length * 2 + 1}
+                  className="px-3 py-1.5 text-[11px] font-black text-blue-800 uppercase tracking-widest border-b border-blue-200"
+                >
+                  ● Male
+                </td>
+              </tr>
+              {renderStudentRows(males, 0)}
+
+              {/* Female section */}
+              <tr className="bg-pink-50">
+                <td
+                  colSpan={2 + sf3Subjects.length * 2 + 1}
+                  className="px-3 py-1.5 text-[11px] font-black text-pink-800 uppercase tracking-widest border-b border-pink-200 border-t border-t-slate-200"
+                >
+                  ● Female
+                </td>
+              </tr>
+              {renderStudentRows(females, males.length)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Subject Editor Modal */}
+      {editingSubjects && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-slate-800">Manage Subject Columns</h3>
+              <button onClick={() => setEditingSubjects(false)} className="text-slate-400 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">Drag to reorder. These become columns in the SF3 matrix and the Excel export.</p>
+            <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+              {subjectDraft.map((sub, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className="flex-1 h-9 text-sm border border-slate-200 rounded-lg px-3 outline-none focus:ring-2 focus:ring-blue-300 bg-slate-50"
+                    value={sub}
+                    onChange={e => {
+                      const next = [...subjectDraft]
+                      next[i] = e.target.value
+                      setSubjectDraft(next)
+                    }}
+                  />
+                  <button
+                    onClick={() => setSubjectDraft(subjectDraft.filter((_, j) => j !== i))}
+                    className="text-red-400 hover:text-red-600 p-1"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Book Title</label>
-                <Input 
-                   placeholder="e.g. Science 8 Learner's Module" 
-                   value={bookTitle} 
-                   onChange={e => setBookTitle(e.target.value)}
-                   className="skeu-input h-10 text-sm"
-                   onKeyDown={e => e.key === 'Enter' && handleIssueSubmit()}
-                />
-              </div>
-
-              <button 
-                onClick={handleIssueSubmit} 
-                className="skeu-btn mt-2 h-10 w-full rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
-                disabled={!selectedLrn || !bookTitle.trim()}
-                style={{ opacity: (!selectedLrn || !bookTitle.trim()) ? 0.5 : 1 }}
+              ))}
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input
+                className="flex-1 h-9 text-sm border border-dashed border-blue-300 rounded-lg px-3 outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50/40"
+                placeholder="Add new subject…"
+                value={newSubject}
+                onChange={e => setNewSubject(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newSubject.trim()) {
+                    setSubjectDraft([...subjectDraft, newSubject.trim()])
+                    setNewSubject("")
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (newSubject.trim()) {
+                    setSubjectDraft([...subjectDraft, newSubject.trim()])
+                    setNewSubject("")
+                  }
+                }}
+                className="h-9 px-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition-colors"
               >
-                <Save size={14} /> Issue Book to Learner
+                <Plus size={14} />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditingSubjects(false)}
+                className="flex-1 h-10 rounded-xl text-sm font-semibold border border-slate-200 hover:bg-slate-50 text-slate-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveSubjects}
+                className="flex-1 h-10 rounded-xl text-sm font-bold text-white"
+                style={{ background: 'linear-gradient(180deg,#003876,#002560)' }}
+              >
+                Save Columns
               </button>
             </div>
           </div>
         </div>
-
-        {/* Right Column: Inventory Table */}
-        <div className="md:col-span-2">
-          {selectedLrn ? (
-            <div className="rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)", border: "1px solid #DDE4EE", boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.08)" }}>
-              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <div>
-                  <h2 className="text-base font-black flex items-center gap-2" style={{ color: '#111A24' }}>
-                    <Book size={16} className="text-blue-500" />
-                    Learner Inventory
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Books currently assigned to <span className="font-bold text-slate-800">{selectedStudentName}</span>
-                  </p>
-                </div>
-                <div className="text-xs font-bold px-2 py-1 bg-slate-200/50 text-slate-600 rounded">
-                  {studentBooks.length} Total
-                </div>
-              </div>
-              
-              <div className="p-0">
-                {studentBooks.length === 0 ? (
-                  <div className="p-12 text-center flex flex-col items-center">
-                    <Book className="w-12 h-12 text-slate-200 mb-3" />
-                    <p className="text-base font-bold" style={{ color: '#5A6A7E' }}>No books issued yet</p>
-                    <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Use the form to issue the first book.</p>
-                  </div>
-                ) : (
-                  <Table className="min-w-full">
-                    <TableHeader className="bg-slate-50/50 border-b-0">
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Book Title</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px]">Date Issued</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">Status</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px] text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {studentBooks.map(b => (
-                        <TableRow key={b.id} className={`transition-colors ${b.dateReturned ? "bg-slate-50/50 opacity-60" : "bg-white"}`}>
-                          <TableCell className="font-bold text-slate-800 py-3">{b.title}</TableCell>
-                          <TableCell className="text-xs text-slate-600 font-medium py-3">{b.dateIssued}</TableCell>
-                          <TableCell className="py-3">
-                            {b.dateReturned ? (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-1 rounded border border-emerald-200 whitespace-nowrap">
-                                Returned {b.dateReturned}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-1 rounded border border-amber-200 flex items-center gap-1 w-fit whitespace-nowrap">
-                                <Clock size={10} /> Borrowed
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right py-3">
-                            {!b.dateReturned && (
-                              <button 
-                                onClick={() => handleReturn(selectedLrn, b.id)}
-                                className="skeu-btn-ghost h-7 px-3 rounded text-[11px] font-bold whitespace-nowrap text-amber-700 border border-amber-200 hover:bg-amber-50"
-                              >
-                                Mark Return
-                              </button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="h-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 flex flex-col items-center justify-center text-center p-12 min-h-[300px]">
-               <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 border border-slate-200 shadow-sm shadow-slate-200/50">
-                 <BookOpen className="w-8 h-8 text-slate-300" />
-               </div>
-               <p className="text-lg font-black" style={{ color: '#5A6A7E' }}>Select a Learner First</p>
-               <p className="text-sm mt-1 max-w-[250px]" style={{ color: '#8898AC' }}>Choose a student from the dropdown menu to view and manage their assigned books.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
