@@ -440,7 +440,80 @@ export default function AdviserDashboard() {
                         <div className="flex items-center justify-end gap-4">
                           <button
                             onClick={() => {
-                               alert(`[DepAid AI Integration]\nGenerating DepEd-Compliant Intervention Letter for ${student.name}'s parents...\n\nAutomatically injecting current standing (Avg: ${student.average}, Absences: ${student.absences}) into standard SARDO format. Downloading PDF...`)
+                              const today = new Date()
+                              const dateStr = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                              const reason = student.average > 0 && student.average < 75
+                                ? `academic standing (General Average: <strong>${student.average.toFixed(2)}</strong>, below the passing mark of 75)`
+                                : `excessive absences (<strong>${student.absences} absence${student.absences !== 1 ? 's' : ''}</strong> recorded this quarter)`
+                              const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>SARDO Intervention Letter – ${student.name}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+    body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 40px 60px; font-size: 13pt; color: #000; }
+    .header { text-align: center; margin-bottom: 8px; }
+    .header img { height: 60px; }
+    .header h2 { font-size: 13pt; margin: 2px 0; text-transform: uppercase; }
+    .header p { font-size: 11pt; margin: 1px 0; }
+    hr { border: none; border-top: 2px solid #000; margin: 10px 0 4px; }
+    hr.thin { border-top: 1px solid #000; margin: 2px 0 14px; }
+    .date { text-align: right; margin-bottom: 20px; }
+    .body { text-align: justify; line-height: 1.8; }
+    .body p { margin: 0 0 14px; }
+    .indent { text-indent: 40px; }
+    .sig { margin-top: 40px; }
+    .sig-name { font-weight: bold; text-transform: uppercase; border-top: 1px solid #000; display: inline-block; min-width: 220px; padding-top: 4px; margin-top: 50px; }
+    @media print { body { padding: 30px 50px; } button { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Republic of the Philippines</h2>
+    <h2>Department of Education</h2>
+    <p>Region XI – Davao Region</p>
+    <p>Division of Panabo City</p>
+    <p><strong>QUEZON NATIONAL HIGH SCHOOL</strong></p>
+    <p>Quezon, Panabo City</p>
+  </div>
+  <hr/><hr class="thin"/>
+
+  <div class="date">${dateStr}</div>
+
+  <div class="body">
+    <p>Dear Parent/Guardian of <strong>${student.name}</strong>,</p>
+
+    <p class="indent">Greetings of peace and goodwill!</p>
+
+    <p class="indent">This letter is to formally inform you that your child, <strong>${student.name}</strong>, a student of Grade 8 – ARIES at Quezon National High School for School Year 2025–2026, has been identified as a <strong>Student At Risk of Dropping Out (SARDO)</strong> due to ${reason}.</p>
+
+    <p class="indent">In line with DepEd Order No. 40, s. 2012 (DepEd Child Protection Policy) and DO No. 21, s. 2019 (Policy Guidelines on the K–12 Basic Education Program), we are reaching out to coordinate appropriate intervention strategies to support your child's academic progress and continued enrollment.</p>
+
+    <p class="indent">We strongly encourage you to schedule a meeting with the class adviser at your earliest convenience to discuss the matter and plan for necessary academic or behavioral interventions. Your cooperation and active involvement in your child's education is greatly appreciated.</p>
+
+    <p class="indent">Should you have any questions or concerns, please feel free to contact the school at the number provided above. We look forward to working with you for the betterment of your child's future.</p>
+
+    <p class="indent">Thank you very much.</p>
+  </div>
+
+  <div class="sig">
+    <p>Respectfully yours,</p>
+    <div class="sig-name">TEACHER'S NAME</div>
+    <p style="margin:2px 0 0">Class Adviser, Grade 8 – ARIES</p>
+
+    <br/><br/>
+    <p>Noted by:</p>
+    <div class="sig-name">MYRNA EVANGELISTA PURIFICACION</div>
+    <p style="margin:2px 0 0">School Head / Principal</p>
+  </div>
+
+  <script>window.onload = () => window.print();</script>
+</body>
+</html>`
+                              const win = window.open('', '_blank')
+                              if (win) { win.document.write(html); win.document.close() }
+                              else alert('Please allow pop-ups for this site to generate the letter.')
                             }}
                             className="text-[11px] uppercase tracking-wider font-black px-3 py-1.5 rounded-md shadow-sm transition-all hover:-translate-y-0.5"
                             style={{ background: "linear-gradient(180deg, #E3001B 0%, #C00017 100%)", color: "white", border: "1px solid #A00015" }}
