@@ -198,6 +198,20 @@ export default function SF3Page() {
                 </div>
               </div>
 
+              {/* Remarks Legend — shown above table when any remarks field is focused */}
+              {focusedRemarksSubject && (
+                <div className="mx-0 border-b border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-slate-700 leading-relaxed">
+                  <p className="font-bold text-amber-800 mb-1">📋 Remark / Action Taken Codes</p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-0.5">
+                    <span><strong>FM</strong> = Force Majeure (Date Returned)</span>
+                    <span><strong>TDO</strong> = Transferred/Dropout (Date Returned)</span>
+                    <span><strong>NEG</strong> = Negligence (Date Returned)</span>
+                    <span><strong>LLTR</strong> = Secured Letter from Learner <em>(use when FM)</em></span>
+                    <span><strong>TLTR</strong> = Teacher Letter to School Head <em>(use when TDO)</em></span>
+                    <span><strong>PTL</strong> = Paid by the Learner <em>(use when NEG)</em></span>
+                  </div>
+                </div>
+              )}
               <div className="p-0">
                 {studentBooks.length === 0 ? (
                   <div className="p-12 text-center flex flex-col items-center">
@@ -234,32 +248,13 @@ export default function SF3Page() {
                           </TableCell>
                           <TableCell className="py-2">
                             {!b.dateReturned ? (
-                              <div className="relative">
-                                <input
-                                  className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
-                                  placeholder="LLTR / TLTR / PTL…"
-                                  defaultValue={b.remarks}
-                                  onFocus={() => setFocusedRemarksSubject(b.subject)}
-                                  onBlur={e => { handleSetRemarks(b.subject, e.target.value); setFocusedRemarksSubject(null) }}
-                                />
-                                {focusedRemarksSubject === b.subject && (
-                                  <div className="absolute z-50 bottom-full mb-1.5 left-0 w-72 rounded-xl border border-amber-200 bg-amber-50 shadow-lg p-3 text-[10px] text-slate-700 leading-relaxed">
-                                    <p className="font-bold text-amber-800 mb-1.5 text-[11px]">📋 Remark / Action Taken Codes</p>
-                                    <div className="mb-1">
-                                      <span className="font-bold text-slate-600">In Date Returned column:</span><br/>
-                                      <span><strong>FM</strong> = Force Majeure</span><br/>
-                                      <span><strong>TDO</strong> = Transferred / Dropout</span><br/>
-                                      <span><strong>NEG</strong> = Negligence</span>
-                                    </div>
-                                    <div className="border-t border-amber-200 pt-1 mt-1">
-                                      <span className="font-bold text-slate-600">In Remark column:</span><br/>
-                                      <span><strong>LLTR</strong> = Secured Letter from Learner (for FM)</span><br/>
-                                      <span><strong>TLTR</strong> = Teacher Letter to School Head (for TDO)</span><br/>
-                                      <span><strong>PTL</strong> = Paid by the Learner (for NEG)</span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              <input
+                                className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
+                                placeholder="LLTR / TLTR / PTL…"
+                                defaultValue={b.remarks}
+                                onFocus={() => setFocusedRemarksSubject(b.subject)}
+                                onBlur={e => { handleSetRemarks(b.subject, e.target.value); setFocusedRemarksSubject(null) }}
+                              />
                             ) : (
                               <span className="text-[11px] text-slate-400">{b.remarks || '—'}</span>
                             )}
