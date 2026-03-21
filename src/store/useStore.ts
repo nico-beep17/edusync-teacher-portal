@@ -33,8 +33,8 @@ export type BookEntry = {
   dateReturned?: string
 }
 
-// SF3 Subject Matrix: lrn -> subjectKey -> { dateIssued?, dateReturned? }
-export type SF3Record = { dateIssued?: string; dateReturned?: string }
+// SF3 Subject Matrix: lrn -> subjectKey -> { dateIssued?, dateReturned?, remarks? }
+export type SF3Record = { dateIssued?: string; dateReturned?: string; remarks?: string }
 export type SF3Books = Record<string, Record<string, SF3Record>>
 
 export type WorkloadEntry = {

@@ -16,6 +16,7 @@ export default function SF3Page() {
 
   const [selectedLrn, setSelectedLrn] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
+  const [remarksField, setRemarksField] = useState<string>('')
   const [dateField, setDateField] = useState(() => new Date().toISOString().split('T')[0])
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -25,8 +26,9 @@ export default function SF3Page() {
   const handleIssueSubmit = () => {
     if (!selectedLrn || !selectedSubject) return
     const existing = books[selectedLrn]?.[selectedSubject] || {}
-    setSf3Record(selectedLrn, selectedSubject, { ...existing, dateIssued: dateField })
+    setSf3Record(selectedLrn, selectedSubject, { ...existing, dateIssued: dateField, remarks: remarksField || existing.remarks })
     setSaved(true)
+    setRemarksField('')
     setTimeout(() => setSaved(false), 2000)
   }
 
@@ -42,6 +44,7 @@ export default function SF3Page() {
       subject,
       dateIssued: rec.dateIssued || '',
       dateReturned: rec.dateReturned || '',
+      remarks: rec.remarks || '',
     }))
   }, [books, selectedLrn])
 
@@ -159,6 +162,20 @@ export default function SF3Page() {
                 </div>
               </div>
 
+              {/* Remarks */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  Remarks / Action Taken <span className="font-normal normal-case text-slate-400">(optional)</span>
+                </label>
+                <input
+                  className="skeu-input h-10 px-3 text-sm rounded-lg w-full focus:outline-none bg-white border border-slate-200"
+                  placeholder="e.g. LLTR, FM, TDO…"
+                  value={remarksField}
+                  onChange={e => setRemarksField(e.target.value)}
+                />
+                <p className="text-[10px] text-slate-400">Codes: LLTR · TLTR · Custodian · PTL · FM · TDO · NEG</p>
+              </div>
+
               <button
                 onClick={handleIssueSubmit}
                 className="skeu-btn mt-2 h-10 w-full rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -204,6 +221,7 @@ export default function SF3Page() {
                         <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Subject / Book</TableHead>
                         <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px]">Date Issued</TableHead>
                         <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">Status</TableHead>
+                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[130px]">Remarks</TableHead>
                         <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px] text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -222,6 +240,9 @@ export default function SF3Page() {
                                 <Clock size={10} /> Borrowed
                               </span>
                             )}
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-500 py-3 max-w-[130px] truncate" title={b.remarks}>
+                            {b.remarks || <span className="text-slate-300">—</span>}
                           </TableCell>
                           <TableCell className="text-right py-3">
                             {!b.dateReturned && (

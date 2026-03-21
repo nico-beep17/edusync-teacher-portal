@@ -746,14 +746,24 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
       ws.getCell(`A${rowNum}`).value = idx + 1
       ws.getCell(`B${rowNum}`).value = student.name
       const sBooks = books[student.lrn] || {}
+      // Collect all remarks across all subjects for this student
+      const allRemarks = bookTitles
+        .map(title => (sBooks[title] || {}).remarks)
+        .filter(Boolean)
+        .join('; ')
       bookTitles.forEach((title, colIdx) => {
         const rec = sBooks[title] || {}
         ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
         ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
       })
+      // Remarks column is column T (the last column in the template)
+      ws.getCell(`T${rowNum}`).value = allRemarks
+      ws.getCell(`T${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      ws.getCell(`T${rowNum}`).font = { name: 'Arial', size: 8 }
     } else {
       ws.getCell(`A${rowNum}`).value = ''
       ws.getCell(`B${rowNum}`).value = ''
+      ws.getCell(`T${rowNum}`).value = ''
       cols.forEach(c => { ws.getCell(`${c[0]}${rowNum}`).value = ''; ws.getCell(`${c[1]}${rowNum}`).value = '' })
     }
   }
@@ -763,6 +773,20 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   }
   for (let i = 0; i < (femaleTotalRow - femaleStartRow); i++) {
     injectRow(females[i] || null, femaleStartRow + i, i)
+  }
+
+  // "Prepared By" signature (teacher name)
+  // Find the row containing "Prepared by" in the template, otherwise use a known fixed row
+  let prepRow = 0
+  ws.eachRow((row, ri) => {
+    row.eachCell(c => {
+      if (getCellText(c.value).toLowerCase().includes('prepared') && !prepRow) prepRow = ri
+    })
+  })
+  if (prepRow > 0) {
+    ws.getCell(`T${prepRow + 1}`).value = si.adviserName || ''
+    ws.getCell(`T${prepRow + 1}`).font = { name: 'Arial', size: 10, bold: true }
+    ws.getCell(`T${prepRow + 1}`).alignment = { horizontal: 'center', vertical: 'middle' }
   }
 
   return wb
