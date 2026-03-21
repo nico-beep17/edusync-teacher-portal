@@ -27,6 +27,16 @@ function tBorder(color = 'C8D4E0'): Partial<ExcelJS.Borders> {
   const s = { style: 'thin' as ExcelJS.BorderStyle, color: { argb: 'FF' + color } }
   return { top: s, bottom: s, left: s, right: s }
 }
+function getCellText(value: any): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object' && value.richText) {
+    return value.richText.map((rt: any) => rt.text || '').join('');
+  }
+  if (typeof value === 'object' && value.result !== undefined) {
+    return String(value.result);
+  }
+  return String(value);
+}
 
 
 // ─── SF1 Route (Masterlist) ───────────────────────────────────────────────────
@@ -621,7 +631,7 @@ async function buildSF5(students: any[], schoolInfo: any) {
   let fTotal = 60
   ws.eachRow((r, i) => {
       r.eachCell((c) => {
-          const v = String(c.value).toUpperCase()
+          const v = getCellText(c.value).toUpperCase()
           if(v.includes('TOTAL MALE')) mTotal = i
           if(v.includes('TOTAL FEMALE')) fTotal = i
       })
@@ -713,13 +723,13 @@ async function buildSF3(students: any[], books: Record<string, any[]>, schoolInf
   const females = students.filter(s => s.sex === 'F')
 
   let maleTotalRow = 12
-  while(ws.getCell(`B${maleTotalRow}`).value !== null && !String(ws.getCell(`B${maleTotalRow}`).value).toUpperCase().includes('TOTAL FOR MALE') && maleTotalRow < 100) {
+  while(ws.getCell(`B${maleTotalRow}`).value !== null && !getCellText(ws.getCell(`B${maleTotalRow}`).value).toUpperCase().includes('TOTAL FOR MALE') && maleTotalRow < 100) {
       maleTotalRow++
   }
   
   let femaleStartRow = maleTotalRow + 1
   let femaleTotalRow = femaleStartRow
-  while(ws.getCell(`B${femaleTotalRow}`).value !== null && !String(ws.getCell(`B${femaleTotalRow}`).value).toUpperCase().includes('TOTAL FOR FEMALE') && femaleTotalRow < 150) {
+  while(ws.getCell(`B${femaleTotalRow}`).value !== null && !getCellText(ws.getCell(`B${femaleTotalRow}`).value).toUpperCase().includes('TOTAL FOR FEMALE') && femaleTotalRow < 150) {
       femaleTotalRow++
   }
 
@@ -805,7 +815,7 @@ async function buildComposite(students: any[]) {
   let maleStart = 5
   let femaleStart = 33
   for(let r = 1; r < 80; r++) {
-      const val = String(ws.getCell(`C${r}`).value).toUpperCase()
+      const val = getCellText(ws.getCell(`C${r}`).value).toUpperCase()
       if(val === "MALE" || val.includes("MALE") && !val.includes("FEMALE")) maleStart = r + 1
       if(val === "FEMALE" || val.includes("FEMALE")) femaleStart = r + 1
   }
