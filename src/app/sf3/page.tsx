@@ -61,6 +61,7 @@ export default function SF3Page() {
   const handleExport = async () => {
     setExporting(true)
     try {
+      console.log('[SF3 EXPORT] books payload:', JSON.stringify(books, null, 2))
       const res = await fetch('/api/export/sf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
