@@ -721,18 +721,9 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
     } catch { return iso }
   }
 
-  // Detect Remarks/Action Taken column by scanning header rows
-  let remarksCol = 'T' // fallback
-  for (let r = 8; r <= 11; r++) {
-    const row = ws.getRow(r)
-    row.eachCell((cell, colNum) => {
-      const txt = getCellText(cell.value).toLowerCase()
-      if (txt.includes('remark') || txt.includes('action')) {
-        remarksCol = ws.getColumn(colNum).letter
-      }
-    })
-  }
-
+  // Remarks/Action Taken is column T in the SF3 template (confirmed from template inspection)
+  // Column T contains richText so dynamic scanning won't match plain string search
+  const remarksCol = 'T'
   // Inject subject titles in headers
   bookTitles.forEach((title, i) => {
       ws.getCell(`${cols[i][0]}9`).value = `Subject Area & Title\n${title}`
@@ -757,6 +748,7 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   const clearRow = (r: number) => {
     ws.getCell(`A${r}`).value = ''
     ws.getCell(`B${r}`).value = ''
+    ws.getCell(`C${r}`).value = ''
     ws.getCell(`${remarksCol}${r}`).value = ''
     cols.forEach(c => {
       ws.getCell(`${c[0]}${r}`).value = ''
@@ -777,6 +769,7 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
     if (student) {
       ws.getCell(`A${rowNum}`).value = idx + 1
       ws.getCell(`B${rowNum}`).value = student.name
+      ws.getCell(`C${rowNum}`).value = student.name // col C is merged with B in template
       const sBooks = books[student.lrn] || {}
       // Remarks only for unreturned/lost books (per DepEd SF3 guidelines)
       const allRemarks = bookTitles
@@ -791,7 +784,9 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
         ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
         ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
       })
-      ws.getCell(`${remarksCol}${rowNum}`).value = allRemarks
+      console.log(`[SF3 DEBUG] Student=${student.name} sBooks=`, JSON.stringify(sBooks), `allRemarks="${allRemarks}"`)
+      ws.getCell(`${remarksCol}${rowNum}`).value = allRemarks || null
+
       ws.getCell(`${remarksCol}${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
       ws.getCell(`${remarksCol}${rowNum}`).font = { name: 'Arial', size: 8 }
     } else {
