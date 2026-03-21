@@ -3,37 +3,42 @@ const path = require('path')
 
 async function main() {
   const wb = new ExcelJS.Workbook()
-  await wb.xlsx.readFile(path.join(__dirname, '../public/templates/SF 3 ARIES.xlsx'))
-  const ws = wb.worksheets[0]
+  await wb.xlsx.readFile(path.join(__dirname, '../public/templates/School-Forms-1-7 .xlsx'))
   
-  console.log('=== Sheet name:', ws.name)
-  console.log('=== Rows 1-12:')
-  for (let r = 1; r <= 12; r++) {
+  console.log('=== Worksheets:')
+  wb.worksheets.forEach(ws => console.log(' -', ws.name))
+  
+  const ws = wb.getWorksheet('School Form 3 (SF3)')
+  if (!ws) { console.log('SF3 sheet NOT FOUND'); return }
+  
+  console.log('\n=== SF3 Sheet, Rows 1-13:')
+  for (let r = 1; r <= 13; r++) {
     const row = ws.getRow(r)
     const cells = []
     row.eachCell({ includeEmpty: false }, (cell, colNum) => {
       const letter = ws.getColumn(colNum).letter
-      const val = typeof cell.value === 'object' && cell.value !== null
-        ? JSON.stringify(cell.value).substring(0, 60)
-        : String(cell.value || '').substring(0, 60)
-      cells.push(`${letter}${r}="${val}"`)
+      const val = typeof cell.value === 'object' && cell.value !== null && cell.value.richText
+        ? '[richText]:' + cell.value.richText.map(t => t.text).join('').substring(0, 40)
+        : String(cell.value || '').substring(0, 50)
+      cells.push(`${letter}="${val}"`)
     })
     if (cells.length) console.log(`Row ${r}:`, cells.join(' | '))
   }
-  
-  console.log('\n=== Row 11 (likely header) full scan:')
-  const r11 = ws.getRow(11)
-  r11.eachCell({ includeEmpty: false }, (cell, colNum) => {
-    const letter = ws.getColumn(colNum).letter
-    console.log(`  ${letter}: "${cell.value}"`)
-  })
 
-  console.log('\n=== Sample data row 12:')
-  const r12 = ws.getRow(12)
-  r12.eachCell({ includeEmpty: false }, (cell, colNum) => {
+  console.log('\n=== Row 9 full (column headers):')
+  ws.getRow(9).eachCell({ includeEmpty: false }, (cell, colNum) => {
     const letter = ws.getColumn(colNum).letter
-    console.log(`  ${letter}: "${cell.value}"`)
+    const val = typeof cell.value === 'object' && cell.value !== null && cell.value.richText
+      ? '[richText]:' + cell.value.richText.map(t => t.text).join('').substring(0, 60)
+      : String(cell.value || '').substring(0, 60)
+    console.log(`  ${letter}:`, val)
   })
+  
+  console.log('\n=== Last column with data in row 9:')
+  let lastCol = 0
+  ws.getRow(9).eachCell({ includeEmpty: false }, (_, colNum) => { lastCol = colNum })
+  const last = ws.getColumn(lastCol)
+  console.log(`  Last col: ${last.letter} (index ${lastCol})`)
 }
 
 main().catch(console.error)

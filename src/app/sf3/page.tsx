@@ -257,13 +257,14 @@ export default function SF3Page() {
                             )}
                           </TableCell>
                           <TableCell className="py-2">
-                            {!b.dateReturned ? (
+              {!b.dateReturned ? (
                               <input
                                 className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
                                 placeholder="LLTR / TLTR / PTL…"
-                                defaultValue={b.remarks}
+                                value={b.remarks}
                                 onFocus={() => setFocusedRemarksSubject(b.subject)}
-                                onBlur={e => { handleSetRemarks(b.subject, e.target.value); setFocusedRemarksSubject(null) }}
+                                onBlur={() => setFocusedRemarksSubject(null)}
+                                onChange={e => handleSetRemarks(b.subject, e.target.value)}
                               />
                             ) : (
                               <span className="text-[11px] text-slate-400">{b.remarks || '—'}</span>
