@@ -390,16 +390,6 @@ export default function AttendancePage() {
           <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Grade 8 - ARIES • Class Advisory</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <QRScannerModal />
-
-          {/* Mark all present */}
-          <button
-            onClick={handleMarkAllPresent}
-            className="skeu-btn-ghost h-9 px-3 rounded-lg text-sm text-slate-600 hover:text-green-700"
-            title="Mark all students present today"
-          >
-            ✓ All Present
-          </button>
 
           {/* Month picker for export */}
           <div className="flex flex-col sm:flex-row items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #C8D4E0', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset' }}>
@@ -479,7 +469,16 @@ export default function AttendancePage() {
               </span>
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <QRScannerModal />
+            <button
+              onClick={handleMarkAllPresent}
+              className="skeu-btn-ghost h-9 px-3 mr-2 bg-white rounded-lg text-sm text-slate-600 hover:text-green-700 hover:bg-green-50/50 transition-colors"
+              title="Mark all students present today"
+              style={{ border: "1px solid #DDE4EE", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+            >
+              ✓ All Present
+            </button>
             <Button variant="outline" size="sm" onClick={() => setWeekOffset(prev => prev - 1)}>
               <ChevronLeft className="w-4 h-4 mr-1" /> Prev Week
             </Button>
