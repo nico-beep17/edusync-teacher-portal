@@ -721,6 +721,18 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
     } catch { return iso }
   }
 
+  // Detect Remarks/Action Taken column by scanning header rows
+  let remarksCol = 'T' // fallback
+  for (let r = 8; r <= 11; r++) {
+    const row = ws.getRow(r)
+    row.eachCell((cell, colNum) => {
+      const txt = getCellText(cell.value).toLowerCase()
+      if (txt.includes('remark') || txt.includes('action')) {
+        remarksCol = ws.getColumn(colNum).letter
+      }
+    })
+  }
+
   // Inject subject titles in headers
   bookTitles.forEach((title, i) => {
       ws.getCell(`${cols[i][0]}9`).value = `Subject Area & Title\n${title}`
@@ -745,7 +757,7 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
   const clearRow = (r: number) => {
     ws.getCell(`A${r}`).value = ''
     ws.getCell(`B${r}`).value = ''
-    ws.getCell(`T${r}`).value = ''
+    ws.getCell(`${remarksCol}${r}`).value = ''
     cols.forEach(c => {
       ws.getCell(`${c[0]}${r}`).value = ''
       ws.getCell(`${c[1]}${r}`).value = ''
@@ -760,7 +772,7 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
       ws.getCell(`${c[0]}${rowNum}`).value = ''
       ws.getCell(`${c[1]}${rowNum}`).value = ''
     })
-    ws.getCell(`T${rowNum}`).value = ''
+    ws.getCell(`${remarksCol}${rowNum}`).value = ''
 
     if (student) {
       ws.getCell(`A${rowNum}`).value = idx + 1
@@ -779,9 +791,9 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
         ws.getCell(`${cols[colIdx][0]}${rowNum}`).value = fmtDate(rec.dateIssued)
         ws.getCell(`${cols[colIdx][1]}${rowNum}`).value = fmtDate(rec.dateReturned)
       })
-      ws.getCell(`T${rowNum}`).value = allRemarks
-      ws.getCell(`T${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      ws.getCell(`T${rowNum}`).font = { name: 'Arial', size: 8 }
+      ws.getCell(`${remarksCol}${rowNum}`).value = allRemarks
+      ws.getCell(`${remarksCol}${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      ws.getCell(`${remarksCol}${rowNum}`).font = { name: 'Arial', size: 8 }
     } else {
       ws.getCell(`A${rowNum}`).value = ''
       ws.getCell(`B${rowNum}`).value = ''
@@ -804,9 +816,9 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
     })
   })
   if (prepRow > 0) {
-    ws.getCell(`T${prepRow + 1}`).value = si.adviserName || ''
-    ws.getCell(`T${prepRow + 1}`).font = { name: 'Arial', size: 10, bold: true }
-    ws.getCell(`T${prepRow + 1}`).alignment = { horizontal: 'center', vertical: 'middle' }
+    ws.getCell(`${remarksCol}${prepRow + 1}`).value = si.adviserName || ''
+    ws.getCell(`${remarksCol}${prepRow + 1}`).font = { name: 'Arial', size: 10, bold: true }
+    ws.getCell(`${remarksCol}${prepRow + 1}`).alignment = { horizontal: 'center', vertical: 'middle' }
   }
 
   return wb
