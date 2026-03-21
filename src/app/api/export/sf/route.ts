@@ -741,6 +741,19 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
       femaleTotalRow++
   }
 
+  // ── Pre-clear ALL data rows in template before writing ──────────────────────
+  const clearRow = (r: number) => {
+    ws.getCell(`A${r}`).value = ''
+    ws.getCell(`B${r}`).value = ''
+    ws.getCell(`T${r}`).value = ''
+    cols.forEach(c => {
+      ws.getCell(`${c[0]}${r}`).value = ''
+      ws.getCell(`${c[1]}${r}`).value = ''
+    })
+  }
+  for (let r = 12; r < maleTotalRow; r++) clearRow(r)
+  for (let r = femaleStartRow; r < femaleTotalRow; r++) clearRow(r)
+
   const injectRow = (student: any | null, rowNum: number, idx: number) => {
     // Always clear ALL subject date columns first (D–S = 8 subjects × 2 cols)
     cols.forEach(c => {
