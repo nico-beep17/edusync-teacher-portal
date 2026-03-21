@@ -5,13 +5,14 @@ import { useState, useRef, useEffect } from "react"
 import { useTeacherStore } from "@/store/useStore"
 import { Input } from "@/components/ui/input"
 
-export function QRScannerModal() {
+export function QRScannerModal({ subject }: { subject?: string }) {
   const [open, setOpen] = useState(false)
   const [scanValue, setScanValue] = useState("")
   const [lastScanned, setLastScanned] = useState<string | null>(null)
   
   const students = useTeacherStore(s => s.students)
   const updateAttendance = useTeacherStore(s => s.updateAttendance)
+  const updateSubjectAttendance = useTeacherStore(s => s.updateSubjectAttendance)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auto-focus the hidden input to capture generic USB Barcode Scanner events
@@ -29,7 +30,11 @@ export function QRScannerModal() {
     if (student) {
        // Log the exact moment of scan securely to local cache
        const today = new Date().toISOString().split('T')[0] 
-       updateAttendance(student.lrn, { date: today, status: 'P' })
+       if (subject) {
+         updateSubjectAttendance(subject, student.lrn, { date: today, status: 'P' })
+       } else {
+         updateAttendance(student.lrn, { date: today, status: 'P' })
+       }
        
        setLastScanned(student.name)
        setScanValue("")

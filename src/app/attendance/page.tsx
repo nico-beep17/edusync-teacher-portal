@@ -296,8 +296,7 @@ export default function AttendancePage() {
     // Only mark today (no PIN needed for today)
     const newAtt = { ...localAtt }
     globalStudents.forEach(s => {
-      if (!newAtt[s.lrn]) newAtt[s.lrn] = {}
-      newAtt[s.lrn][todayId] = 'P'
+      newAtt[s.lrn] = { ...(newAtt[s.lrn] || {}), [todayId]: 'P' }
     })
     setLocalAtt(newAtt)
   }

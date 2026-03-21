@@ -141,7 +141,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
   const subjectName = subject.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   
   const globalStudents = useTeacherStore(s => s.students) // Using global students for now, wait we could filter by subject if we had a relation
-  const globalAttendance = useTeacherStore(s => s.subjectAttendance[subject] || {})
+  const globalAttendance = useTeacherStore(s => (s.subjectAttendance || {})[subject] || {})
   const globalSchoolInfo = useTeacherStore(s => s.schoolInfo)
   const updateAttendance = useTeacherStore(s => s.updateSubjectAttendance)
 
@@ -285,8 +285,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
     // Only mark today (no PIN needed for today)
     const newAtt = { ...localAtt }
     globalStudents.forEach(s => {
-      if (!newAtt[s.lrn]) newAtt[s.lrn] = {}
-      newAtt[s.lrn][todayId] = 'P'
+      newAtt[s.lrn] = { ...(newAtt[s.lrn] || {}), [todayId]: 'P' }
     })
     setLocalAtt(newAtt)
   }
@@ -380,7 +379,7 @@ export default function SubjectAttendancePage({ params }: { params: Promise<{ su
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <QRScannerModal />
+            <QRScannerModal subject={subject} />
             <button
               onClick={handleMarkAllPresent}
               className="skeu-btn-ghost h-9 px-3 mr-2 bg-white rounded-lg text-sm text-slate-600 hover:text-green-700 hover:bg-green-50/50 transition-colors"
