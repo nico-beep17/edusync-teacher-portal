@@ -21,7 +21,6 @@ export default function SF3Page() {
   const [dateField, setDateField] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => setMounted(true), [])
-  if (!mounted) return null
 
   const handleIssueSubmit = () => {
       if (!selectedLrn || !bookTitle.trim()) return;
@@ -60,6 +59,8 @@ export default function SF3Page() {
           alert("Export Error: " + err.message);
       }
   }
+
+  if (!mounted) return null
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
