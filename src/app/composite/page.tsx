@@ -7,6 +7,7 @@ import { Calculator, Printer, FileDown, Inbox, CheckCircle2, Clock, Loader2 } fr
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
 import { exportToCSV } from "@/lib/export-utils"
+import Link from "next/link"
 
 const computeAverage = (grades: any[], requiredSubjects: string[]) => {
   if (grades.length === 0) return "0"
@@ -84,6 +85,11 @@ export default function CompositeGradesPage() {
           <p className="text-muted-foreground mt-1">Grade 8 - ARIES • Quarter 1</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/print-cards">
+            <Button variant="outline" className="bg-white hover:bg-blue-50 text-[#003876] border-blue-200 shadow-sm transition-colors">
+               <Printer className="mr-2 h-4 w-4" /> Print Cards (SF9)
+            </Button>
+          </Link>
           <Button onClick={() => window.print()} variant="outline" className="bg-white hover:bg-slate-50 text-slate-700 shadow-sm">
              <Printer className="mr-2 h-4 w-4" /> Print Composite
           </Button>

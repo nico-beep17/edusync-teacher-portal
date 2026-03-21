@@ -57,7 +57,7 @@ export function Sidebar() {
         </div>
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
-            <span className="text-base font-black tracking-tight leading-tight" style={{ color: "#111A24" }}>
+            <span className="text-base font-black tracking-tight leading-tight" style={{ color: "#003876" }}>
               Dep<span style={{ color: "#B5081C" }}>Aid</span>
             </span>
             <span className="skeu-label" style={{ marginTop: 2, fontSize: "0.55rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>SUPPORT • FOCUS • EMPOWER</span>
