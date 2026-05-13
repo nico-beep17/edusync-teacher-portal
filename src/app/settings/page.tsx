@@ -784,9 +784,71 @@ export default function SettingsPage() {
             <p className="text-xs" style={{ color: "#8898AC" }}>
               Current PIN: <span className="font-mono font-bold" style={{ color: "#5A6A7E" }}>{showPins ? teacherPin : '••••'}</span>
             </p>
+            <div className="ml-auto flex items-center gap-2">
+               <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "#8898AC" }}>Dev Mode</label>
+               <input 
+                 type="checkbox" 
+                 checked={useTeacherStore.getState().devMode} 
+                 onChange={(e) => useTeacherStore.getState().setDevMode(e.target.checked)}
+                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+               />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Developer Debug Panel */}
+      {useTeacherStore(s => s.devMode) && (
+        <div className="skeu-card overflow-hidden border-2 border-dashed border-red-200 animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-3 px-5 py-4"
+            style={{ background: "linear-gradient(180deg, #FFF8F8 0%, #FFF0F0 100%)", borderBottom: "1px solid #FFD0D0" }}>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+              style={{ background: "#C03030", border: "1px solid #A02020", boxShadow: "0 1px 0 rgba(255,255,255,0.3) inset" }}>
+              <Settings2 size={14} className="text-white" />
+            </div>
+            <div>
+              <p className="font-black text-sm" style={{ color: "#C03030" }}>Developer Debug Panel</p>
+              <p className="text-[11px] font-medium opacity-70">Advanced tools for debugging and raw data management.</p>
+            </div>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button 
+              onClick={() => {
+                const data = useTeacherStore.getState()
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+                saveAs(blob, `RAW_DUMP_${new Date().getTime()}.json`)
+                toast.success("Raw store dump exported!")
+              }}
+              className="skeu-btn-ghost flex items-center justify-center h-10 rounded-xl text-xs gap-2 border-red-100 hover:bg-red-50"
+            >
+              <Download size={14} /> Download Raw State JSON
+            </button>
+            <button 
+              onClick={() => {
+                if (confirm("CRITICAL: This will permanently delete ALL local students, grades, and attendance. This cannot be undone. Proceed?")) {
+                  localStorage.removeItem('depaid-teacher-storage')
+                  window.location.reload()
+                }
+              }}
+              className="flex items-center justify-center h-10 rounded-xl text-xs gap-2 bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-sm"
+            >
+              <Trash2 size={14} /> NUKE LOCAL DATABASE
+            </button>
+            <div className="sm:col-span-2 p-3 bg-gray-900 rounded-lg overflow-hidden">
+               <p className="text-[10px] font-mono text-green-400 mb-2">// Active Store Summary</p>
+               <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap">
+                 {JSON.stringify({
+                   studentsCount: useTeacherStore.getState().students.length,
+                   gradesCount: Object.keys(useTeacherStore.getState().grades).length,
+                   attendanceCount: Object.keys(useTeacherStore.getState().attendance).length,
+                   pinEnc: useTeacherStore.getState().teacherPin,
+                   school: useTeacherStore.getState().schoolInfo.schoolName
+                 }, null, 2)}
+               </pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Modal */}
       {exportModalOpen && selectedFormType && (

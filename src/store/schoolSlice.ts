@@ -65,9 +65,11 @@ export interface SchoolSlice {
   }
   teacherPin: string
   teacherPinPlain: string
+  devMode: boolean
   user: any | null
   setSchoolInfo: (info: any) => void
   setTeacherPin: (pin: string) => void
+  setDevMode: (enabled: boolean) => void
   setUser: (user: any) => void
 }
 
@@ -87,6 +89,7 @@ export const createSchoolSlice: StateCreator<SchoolSlice> = (set) => ({
   },
   teacherPin: '',
   teacherPinPlain: '',
+  devMode: false,
   user: null,
   setSchoolInfo: (info) => set({ schoolInfo: info }),
   setTeacherPin: (pin) => {
@@ -95,5 +98,6 @@ export const createSchoolSlice: StateCreator<SchoolSlice> = (set) => ({
       set({ teacherPin: encrypted })
     })
   },
+  setDevMode: (d) => set({ devMode: d }),
   setUser: (u) => set({ user: u }),
 })
