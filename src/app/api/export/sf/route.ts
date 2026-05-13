@@ -1167,6 +1167,35 @@ async function buildSF9(students: any[], grades: Record<string, any[]>, schoolIn
     // Basic Injection
     const ws1 = wb.getWorksheet('Sheet1') // Grades sheet usually
     const ws2 = wb.getWorksheet('Sheet2') // Attendance sheet usually
+    
+    // Inject Grades
+    if (ws1) {
+      const studentGrades = grades[student.lrn] || []
+      const qtrStr = String(schoolInfo?.quarter || '1').trim()
+      const qtrCol = qtrStr === '1' ? 4 : qtrStr === '2' ? 5 : qtrStr === '3' ? 6 : 7
+
+      // Map subjects to rows
+      for (let r = 9; r <= 23; r++) {
+        const subjCell = ws1.getCell(r, 1).value
+        const subjText = typeof subjCell === 'object' && subjCell?.richText ? subjCell.richText.map(rt => rt.text).join('') : String(subjCell || '')
+        
+        if (subjText) {
+          const match = studentGrades.find(g => 
+            subjText.toLowerCase().includes(g.subject.toLowerCase()) || 
+            (g.subject.toLowerCase() === 'tle' && subjText.toLowerCase().includes('pangkabuhayan')) ||
+            (g.subject.toLowerCase() === 'mapeh' && subjText.toLowerCase().includes('mapeh'))
+          )
+          
+          if (match && match.quarterGrade) {
+            ws1.getCell(r, qtrCol).value = match.quarterGrade
+            
+            // Temporary simple Remarks logic based on DepEd standard passing grade of 75
+            ws1.getCell(r, 9).value = match.quarterGrade >= 75 ? 'Passed' : 'Failed'
+          }
+        }
+      }
+    }
+
     if (ws2) {
       ws2.getCell('P15').value = `Name: ${student.name}`
       ws2.getCell('P16').value = `Learner's Reference Number: ${student.lrn}`
@@ -1226,6 +1255,46 @@ async function buildSF10(students: any[], grades: Record<string, any[]>, schoolI
         front.getCell('E7').value = `FIRST NAME: ${student.name.split(',')[1] || ''}  NAME EXTN. (Jr,I,II): _______`
         front.getCell('F8').value = `Birthdate (mm/dd/yyyy): `
         front.getCell('K8').value = `Sex: ${student.sex === 'M' ? 'Male' : 'Female'}`
+      }
+
+      // Inject Grades for current quarter
+      const studentGrades = grades[student.lrn] || []
+      const qtrStr = String(schoolInfo?.quarter || '1').trim()
+      
+      // Determine columns based on template
+      let qtrCol = 7 // Default for JHS
+      let startRow = 25
+      let endRow = 35
+      let subjCol = 2
+
+      if (isES) {
+        qtrCol = qtrStr === '1' ? 7 : qtrStr === '2' ? 8 : qtrStr === '3' ? 9 : 10
+        startRow = 20
+        endRow = 30
+      } else if (isSHS) {
+        qtrCol = qtrStr === '1' ? 5 : 6
+        startRow = 20
+        endRow = 30
+      } else {
+        // JHS
+        qtrCol = qtrStr === '1' ? 7 : qtrStr === '2' ? 8 : qtrStr === '3' ? 9 : 10
+      }
+
+      for (let r = startRow; r <= endRow; r++) {
+        const subjCell = front.getCell(r, subjCol).value
+        const subjText = typeof subjCell === 'object' && subjCell?.richText ? subjCell.richText.map(rt => rt.text).join('') : String(subjCell || '')
+        
+        if (subjText && subjText.length > 2) {
+          const match = studentGrades.find(g => 
+            subjText.toLowerCase().includes(g.subject.toLowerCase()) || 
+            (g.subject.toLowerCase() === 'tle' && subjText.toLowerCase().includes('livelihood')) ||
+            (g.subject.toLowerCase() === 'mapeh' && subjText.toLowerCase().includes('mapeh'))
+          )
+          
+          if (match && match.quarterGrade) {
+            front.getCell(r, qtrCol).value = match.quarterGrade
+          }
+        }
       }
     }
 
