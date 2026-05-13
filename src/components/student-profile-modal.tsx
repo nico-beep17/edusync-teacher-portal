@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 interface StudentProfileModalProps {
   student: Student | null
@@ -45,7 +46,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
           sex: editForm.sex as 'M' | 'F',
           status: student.status
       })
-      alert("Student Profile Updated Successfully")
+      toast.success("Student Profile Updated Successfully")
       setActiveTab('overview')
   }
 
@@ -155,7 +156,7 @@ export function StudentProfileModal({ student, onClose }: StudentProfileModalPro
                 {/* ID Content */}
                 <div className="z-10 flex flex-col items-center mt-6 text-center text-white drop-shadow-sm">
                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 mb-2 shadow-lg overflow-hidden">
-                      <img src="/depaid-logo.png" alt="DepAid" className="w-12 h-12 object-cover" />
+                      <img src="/depaid-logo.svg" alt="DepAid" className="w-12 h-12 object-cover" />
                    </div>
                    <h2 className="font-extrabold text-sm tracking-widest text-blue-50">QUEZON NATL HIGH</h2>
                    <p className="text-[10px] uppercase font-bold text-blue-200 tracking-wider">DepAid ID • SY 2025-2026</p>

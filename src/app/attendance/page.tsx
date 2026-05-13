@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Save, CalendarIcon, CheckCircle2, Lock, Eye, EyeOff, FileDown, X, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useRef, useState } from "react"
 import { QRScannerModal } from "@/components/attendance/qr-scanner-modal"
@@ -15,7 +16,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── PIN Dialog ─────────────────────────────────────────────────────────────
 function PinDialog({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
-  const correctPin = useTeacherStore(s => s.teacherPin)
+  const correctPin = useTeacherStore(s => s.teacherPinPlain)
   const [digits, setDigits] = useState(['', '', '', ''])
   const [error, setError] = useState(false)
   const [shake, setShake] = useState(false)
@@ -137,6 +138,7 @@ function PinDialog({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AttendancePage() {
   const [mounted, setMounted] = useState(false)
+  const [csrfToken, setCsrfToken] = useState('')
   const globalStudents = useTeacherStore(s => s.students)
   const globalAttendance = useTeacherStore(s => s.attendance)
   const globalSchoolInfo = useTeacherStore(s => s.schoolInfo)
@@ -174,6 +176,16 @@ export default function AttendancePage() {
       records.forEach(r => { initialAtt[s.lrn][r.date] = r.status })
     })
     setLocalAtt(initialAtt)
+    // Fetch CSRF token for API calls
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
     setMounted(true)
   }, [globalStudents, globalAttendance])
 
@@ -342,7 +354,10 @@ export default function AttendancePage() {
       if (summaryOverride) si.sf2Summary = summaryOverride
       const res = await fetch('/api/export/sf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({
           form: formCode,
           students: globalStudents,
@@ -362,11 +377,11 @@ export default function AttendancePage() {
       a.href = url
       // Place SF code at the end
       const prefix = formCode === 'sf2' ? 'Attendance' : 'Monthly_Movement'
-      a.download = `${prefix}_Grade8_ARIES_${exportMonth}_${formCode.toUpperCase()}.xlsx`
+      a.download = `${prefix}_Grade${globalSchoolInfo.gradeLevel}_${globalSchoolInfo.section}_${exportMonth}_${formCode.toUpperCase()}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err: any) {
-      alert(`${formCode.toUpperCase()} Export Error: ` + err.message)
+      toast.error(`${formCode.toUpperCase()} Export Error: ` + err.message)
     } finally {
       setExporting(false)
     }
@@ -385,8 +400,8 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: '#111A24' }}>Daily Attendance (SF2)</h1>
-          <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Grade 8 - ARIES • Class Advisory</p>
+          <h1 data-testid="attendance-heading" className="text-3xl font-black tracking-tight" style={{ color: '#111A24' }}>Advisory Attendance (SF2)</h1>
+          <p className="text-sm mt-1" style={{ color: '#8898AC' }}>Grade {globalSchoolInfo.gradeLevel} - {globalSchoolInfo.section} • Class Advisory — Your advisory students only</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
 
@@ -492,7 +507,7 @@ export default function AttendancePage() {
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table className="min-w-[700px]">
+          <Table data-testid="attendance-table" className="min-w-[700px]">
             <TableHeader className="bg-slate-50/50">
               <TableRow>
                 <TableHead className="w-[50px]">No.</TableHead>

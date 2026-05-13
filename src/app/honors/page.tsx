@@ -77,7 +77,7 @@ export default function HonorRollPage() {
                 {/* Optional PPTX Background Hook - user can replace /cert-assets/bg.png if needed */}
                 <div className="absolute inset-0 z-0 opacity-15 pointer-events-none" style={{ backgroundImage: "url('/cert-assets/image17.png')", backgroundSize: "cover", backgroundPosition: "center" }} />
                 
-                <img src="/depaid-logo.png" className="w-24 h-24 mb-6 relative z-10 opacity-90" alt="Logo" style={{ filter: "grayscale(20%) sepia(20%)" }} />
+                <img src="/depaid-logo.svg" className="w-24 h-24 mb-6 relative z-10 opacity-90" alt="Logo" style={{ filter: "grayscale(20%) sepia(20%)" }} />
                 
                 <div className="relative z-10 w-full flex flex-col items-center">
                   <h2 className="text-xl tracking-[0.2em] text-[#B8860B] font-bold uppercase mb-2">Republic of the Philippines</h2>

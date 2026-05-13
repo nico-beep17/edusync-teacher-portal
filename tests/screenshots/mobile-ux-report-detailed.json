@@ -1,0 +1,44 @@
+[
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "10px < 14px [P.text-[10px] font-bold text-slate-400 upp] \"Auto-Export\"",
+    "fix": "Increase to min 14px"
+  },
+  {
+    "page": "Homepage",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "41x20px < 44x44 [A.text-sm font-semibold text-slate-600 hov] \"Log in\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Homepage",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "118x36px < 44x44 [A.text-sm font-bold bg-[#E3001B] hover:bg-] \"Get Started\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [SPAN.text-xs font-bold text-[#003876] trackin] \"The Future of EdTech\"",
+    "fix": "Increase to min 14px"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [SPAN.text-xs font-bold text-slate-700] \"Cloud Synced\"",
+    "fix": "Increase to min 14px"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [P.text-xs font-black text-slate-800] \"SF1, SF2, SF5\"",
+    "fix": "Increase to min 14px"
+  }
+]

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Send, FileDown, CheckCircle2, Plus, Minus, AlertTriangle, Scan, UserPlus, ChevronUp, ChevronDown, RotateCcw, Info } from "lucide-react"
 import { computeDepEdGrade } from "@/lib/deped-grading"
 import { useTeacherStore } from "@/store/useStore"
+import { toast } from "sonner"
 
 // ─── Editable Weight Banner ───────────────────────────────────────────────────
 function WeightInput({
@@ -54,7 +55,7 @@ function WeightInput({
 }
 
 // ─── Empty Student State ───────────────────────────────────────────────────────
-function EmptyStudentState({ onAddManually }: { onAddManually: () => void }) {
+function EmptyStudentState({ onAddManually, onScan, csrfToken }: { onAddManually: () => void, onScan: (students: any[]) => void, csrfToken: string }) {
   return (
     <div
       className="rounded-xl p-8 flex flex-col items-center text-center my-4"
@@ -81,12 +82,52 @@ function EmptyStudentState({ onAddManually }: { onAddManually: () => void }) {
         >
           <UserPlus size={14} /> Add Students Manually
         </button>
-        <button
-          className="skeu-btn-ghost h-10 px-5 rounded-xl text-sm flex items-center gap-2 justify-center"
-          onClick={() => alert("AI Form 138 Scanner coming soon!")}
-        >
-          <Scan size={14} /> Use AI Scanner (Form 138)
-        </button>
+        <label className="cursor-pointer">
+          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+               const toastId = toast.loading(`Scanning form... Please wait while AI extracts data.`)
+               const reader = new FileReader()
+               reader.readAsDataURL(file)
+               reader.onloadend = async () => {
+                 try {
+                    const res = await fetch('/api/extract-form', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-csrf-token': csrfToken || ''
+                      },
+                      body: JSON.stringify({ base64Image: reader.result })
+                    })
+                   if (!res.ok) throw new Error('Extraction failed')
+                   const data = await res.json()
+                   if (data.students && data.students.length > 0) {
+                     let valid = 0
+                     const newStudents: any[] = []
+                     data.students.forEach((st: any) => {
+                       const lrn = st.lrn || String(Math.floor(Math.random() * 900000000000) + 100000000000)
+                       const mInitial = st.middleName ? ` ${st.middleName.charAt(0).toUpperCase()}.` : ""
+                       const suffixStr = st.suffix ? ` ${st.suffix.toUpperCase()}` : ""
+                       const name = `${st.lastName ? st.lastName.toUpperCase() : 'UNKNOWN'}, ${st.firstName ? st.firstName.toUpperCase() : 'UNKNOWN'}${mInitial}${suffixStr}`
+                       const sex = (st.sex === 'M' || st.sex === 'F') ? st.sex : "M"
+                       newStudents.push({ lrn, name, sex, scores: {} })
+                       valid++
+                     })
+                     onScan(newStudents)
+                     toast.success(`Successfully extracted ${valid} students!`, { id: toastId })
+                   } else {
+                     toast.error('No students found in the image', { id: toastId })
+                   }
+                 } catch (err) {
+                   toast.error('AI Extraction failed. Ensure OpenAI API Key is valid.', { id: toastId })
+                 }
+               }
+            }
+          }} />
+          <div className="skeu-btn-ghost h-10 px-5 rounded-xl text-sm flex items-center gap-2 justify-center">
+            <Scan size={14} /> Use AI Scanner (Form 138)
+          </div>
+        </label>
       </div>
     </div>
   )
@@ -165,6 +206,7 @@ function AddStudentModal({
 export default function EClassRecordPage({ params }: { params: Promise<{ subject: string }> }) {
   const { subject } = use(params)
   const [mounted, setMounted] = useState(false)
+  const [csrfToken, setCsrfToken] = useState('')
   const subjectName = subject.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
   // ── Editable weights (must sum ≤ 100, remainder auto-adjusts) ──
@@ -227,6 +269,15 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
       }))
     }
     // else: leave empty → show empty state prompt
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
     setMounted(true)
   }, [globalStudents, globalGrades, subjectName])
 
@@ -318,7 +369,10 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
     try {
       const res = await fetch('/api/export/ecr', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ subject: subjectName, students, schoolInfo, hps: { ww: hpsWW, pt: hpsPT, qa: hpsQA } })
       })
       if (!res.ok) throw new Error("Template mapping failed.")
@@ -329,7 +383,7 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
       a.href = url; a.download = `${subjectName}_ECR_Q1_${sanitizedName}.xlsx`; a.click()
       window.URL.revokeObjectURL(url)
     } catch (err: any) {
-      alert("Export: " + err.message)
+      toast.error("Export: " + err.message)
     }
   }
 
@@ -529,8 +583,12 @@ export default function EClassRecordPage({ params }: { params: Promise<{ subject
 
         {/* Empty State */}
         {students.length === 0 ? (
-          <EmptyStudentState onAddManually={() => setShowAddStudent(true)} />
-        ) : (
+        <EmptyStudentState 
+          csrfToken={csrfToken}
+          onAddManually={() => setShowAddStudent(true)} 
+          onScan={(scannedStudents) => setStudents(scannedStudents)} 
+        />
+      ) : (
           <div className="overflow-x-auto">
             <Table className="min-w-[900px]">
               <TableHeader className="bg-slate-50/50">

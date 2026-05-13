@@ -10,7 +10,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-              <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
+              <img src="/depaid-logo.svg" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
             </div>
             <span className="text-xl font-black tracking-tight text-[#003876]">Dep<span className="text-[#B5081C]">Aid</span></span>
           </div>
@@ -145,7 +145,7 @@ export default function LandingPage() {
 
       {/* Footer CTA */}
       <section className="py-24 bg-[#003876] relative overflow-hidden text-center">
-        <div className="absolute inset-0 bg-[url('/depaid-logo.png')] opacity-5 bg-center bg-no-repeat bg-cover grayscale" />
+        <div className="absolute inset-0 bg-[url('/depaid-logo.svg')] opacity-5 bg-center bg-no-repeat bg-cover grayscale" />
         <div className="max-w-2xl mx-auto px-6 relative z-10">
           <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Ready to digitize your classroom?</h2>
           <p className="text-blue-200 mb-10 text-lg">Join forward-thinking educators embracing modern technology and zero paperwork.</p>
@@ -164,7 +164,7 @@ export default function LandingPage() {
 function FeatureCard({ icon, title, desc, bg }: { icon: any, title: string, desc: string, bg: string }) {
   return (
     <div className="p-8 rounded-3xl border border-slate-100 bg-white shadow-xl shadow-slate-200/20 hover:shadow-2xl hover:shadow-slate-200/40 transition-all hover:-translate-y-1">
-      <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 \${bg}`}>
+      <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 ${bg}`}>
         {icon}
       </div>
       <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>

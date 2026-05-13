@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Users, FileOutput, ArrowRight, Plus, Trash2, X, AlertTriangle } from "lucide-react"
+import { Users, FileOutput, ArrowRight, Plus, Trash2, X, AlertTriangle, Camera, UserPlus, Loader2, CloudDownload, Clock } from "lucide-react"
 import Link from "next/link"
 import { useTeacherStore } from "@/store/useStore"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { fetchSectionStudents } from "@/lib/section-roster"
 
 const GRADIENTS = [
   "from-blue-500 to-cyan-500",
@@ -19,6 +20,15 @@ const GRADIENTS = [
   "from-teal-500 to-blue-500",
   "from-fuchsia-500 to-purple-500",
 ]
+
+// Helper: "14:30" → "2:30 PM"
+function formatTime12(t: string) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const hr = h % 12 || 12
+  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
+}
 
 // ─── Confirm Delete Modal ─────────────────────────────────────────────────────
 function ConfirmDeleteModal({
@@ -86,29 +96,97 @@ function ConfirmDeleteModal({
 export default function WorkloadDashboard() {
   const [mounted, setMounted] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newSubject, setNewSubject] = useState({ subject: "", section: "", students: "", schedule: "" })
+  const [newSubject, setNewSubject] = useState({ subject: "", section: "", students: "", scheduleDays: [] as string[], startTime: "", endTime: "" })
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; subject: string; section: string } | null>(null)
+  const [cloudFetchStatus, setCloudFetchStatus] = useState<'idle' | 'checking' | 'found' | 'not_found'>('idle')
+  const [cloudStudentCount, setCloudStudentCount] = useState(0)
 
   const workload = useTeacherStore(s => s.workload)
   const addWorkload = useTeacherStore(s => s.addWorkload)
   const removeWorkload = useTeacherStore(s => s.removeWorkload)
+  const globalStudents = useTeacherStore(s => s.students)
+  const workloadStudents = useTeacherStore(s => s.workloadStudents)
+  const schoolInfo = useTeacherStore(s => s.schoolInfo)
+
+  // --- Autocomplete suggestions derived from existing data ---
+  const subjectSuggestions = useMemo(() => {
+    const set = new Set<string>()
+    workload.forEach(w => set.add(w.subject))
+    return Array.from(set)
+  }, [workload])
+
+  const sectionSuggestions = useMemo(() => {
+    const set = new Set<string>()
+    set.add(schoolInfo.section) // Always include the adviser's own section
+    workload.forEach(w => set.add(w.section))
+    return Array.from(set)
+  }, [workload, schoolInfo.section])
 
   useEffect(() => { setMounted(true) }, [])
   if (!mounted) return null
 
-  const handleAdd = () => {
+  // Check if the entered section has existing student data in this app
+  const enteredSection = newSubject.section.trim().toUpperCase()
+  const isAdviserSection = enteredSection === schoolInfo.section.toUpperCase()
+  const slug = newSubject.subject.trim() && enteredSection
+    ? `${newSubject.subject.toLowerCase().replace(/\s+/g, '-')}-${enteredSection.toLowerCase()}`
+    : ''
+  const hasExistingRoster = slug
+    ? (workloadStudents[slug]?.length > 0 || isAdviserSection)
+    : false
+  const showRosterNotice = !!(enteredSection && newSubject.subject.trim() && !hasExistingRoster)
+
+  const handleAdd = async () => {
     if (!newSubject.subject.trim() || !newSubject.section.trim()) return
-    const slug = `${newSubject.subject.toLowerCase().replace(/\s+/g, '-')}-${newSubject.section.toLowerCase().replace(/\s+/g, '-')}`
+
+    // Build display schedule string from structured data
+    const dayAbbrs = newSubject.scheduleDays.length > 0 ? newSubject.scheduleDays.join('/') : ''
+    const timeStr = newSubject.startTime && newSubject.endTime
+      ? `${formatTime12(newSubject.startTime)}-${formatTime12(newSubject.endTime)}`
+      : ''
+    const scheduleDisplay = [dayAbbrs, timeStr].filter(Boolean).join(' ') || 'TBA'
+
     addWorkload({
       id: Date.now().toString(),
       subject: newSubject.subject.trim(),
-      section: newSubject.section.trim().toUpperCase(),
+      section: enteredSection,
       students: parseInt(newSubject.students) || 0,
-      schedule: newSubject.schedule.trim() || "TBA",
+      schedule: scheduleDisplay,
+      scheduleDays: newSubject.scheduleDays,
+      startTime: newSubject.startTime,
+      endTime: newSubject.endTime,
       slug,
       gradient: GRADIENTS[workload.length % GRADIENTS.length]
     })
-    setNewSubject({ subject: "", section: "", students: "", schedule: "" })
+
+    // If it's the adviser's own section, auto-link global students
+    if (isAdviserSection) {
+      useTeacherStore.getState().setWorkloadStudents(slug, [...globalStudents])
+    } else if (!workloadStudents[slug]?.length) {
+      // Try to fetch from Supabase (from another teacher in same school)
+      setCloudFetchStatus('checking')
+      try {
+        const cloudStudents = await fetchSectionStudents(
+          schoolInfo.schoolId,
+          enteredSection,
+          schoolInfo.gradeLevel
+        )
+        if (cloudStudents && cloudStudents.length > 0) {
+          useTeacherStore.getState().setWorkloadStudents(slug, cloudStudents)
+          setCloudFetchStatus('found')
+          setCloudStudentCount(cloudStudents.length)
+          setTimeout(() => setCloudFetchStatus('idle'), 5000)
+        } else {
+          setCloudFetchStatus('not_found')
+          setTimeout(() => setCloudFetchStatus('idle'), 5000)
+        }
+      } catch {
+        setCloudFetchStatus('not_found')
+        setTimeout(() => setCloudFetchStatus('idle'), 5000)
+      }
+    }
+
+    setNewSubject({ subject: "", section: "", students: "", scheduleDays: [], startTime: "", endTime: "" })
     setShowAddForm(false)
   }
 
@@ -165,30 +243,165 @@ export default function WorkloadDashboard() {
             <p className="font-black text-sm" style={{ color: "#111A24" }}>Add New Subject to Workload</p>
             <p className="skeu-label mt-0.5">This creates a new E-Class Record you can manage.</p>
           </div>
+
+          {/* Autocomplete lists */}
+          <datalist id="subject-suggestions">
+            {subjectSuggestions.map(s => <option key={s} value={s} />)}
+            {/* Common subject names */}
+            {['Filipino', 'English', 'Mathematics', 'Science', 'AP', 'TLE/EPP', 'MAPEH', 'ESP'].map(s => <option key={s} value={s} />)}
+          </datalist>
+          <datalist id="section-suggestions">
+            {sectionSuggestions.map(s => <option key={s} value={s} />)}
+          </datalist>
+
           <div className="p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              {[
-                { label: "Subject Name *", key: "subject", ph: "e.g. English 8" },
-                { label: "Section *", key: "section", ph: "e.g. ARIES" },
-                { label: "No. of Students", key: "students", ph: "e.g. 35", type: "number" },
-                { label: "Schedule", key: "schedule", ph: "e.g. M/W/F 8:00-9:00 AM" },
-              ].map(({ label, key, ph, type }) => (
-                <div key={key} className="space-y-1.5">
-                  <Label className="skeu-label">{label}</Label>
-                  <input
-                    type={type || "text"}
-                    placeholder={ph}
-                    value={(newSubject as any)[key]}
-                    onChange={e => setNewSubject({ ...newSubject, [key]: e.target.value })}
-                    className="skeu-input w-full h-10 px-3 text-sm rounded-lg"
-                  />
+              {/* Subject Name with autocomplete */}
+              <div className="space-y-1.5">
+                <Label className="skeu-label">Subject Name *</Label>
+                <input
+                  list="subject-suggestions"
+                  placeholder="e.g. English 8"
+                  value={newSubject.subject}
+                  onChange={e => setNewSubject({ ...newSubject, subject: e.target.value })}
+                  className="skeu-input w-full h-10 px-3 text-sm rounded-lg"
+                  autoComplete="off"
+                />
+              </div>
+              {/* Section with autocomplete */}
+              <div className="space-y-1.5">
+                <Label className="skeu-label">Section *</Label>
+                <input
+                  list="section-suggestions"
+                  placeholder="e.g. ARIES"
+                  value={newSubject.section}
+                  onChange={e => setNewSubject({ ...newSubject, section: e.target.value.toUpperCase() })}
+                  className="skeu-input w-full h-10 px-3 text-sm rounded-lg uppercase"
+                  autoComplete="off"
+                />
+              </div>
+              {/* Students count */}
+              <div className="space-y-1.5">
+                <Label className="skeu-label">No. of Students</Label>
+                <input
+                  type="number"
+                  placeholder="e.g. 35"
+                  value={newSubject.students}
+                  onChange={e => setNewSubject({ ...newSubject, students: e.target.value })}
+                  className="skeu-input w-full h-10 px-3 text-sm rounded-lg"
+                />
+              </div>
+              {/* Schedule — Day toggles + Time pickers */}
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
+                <Label className="skeu-label">Schedule</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Day toggles */}
+                  <div className="flex gap-1">
+                    {['Mon','Tue','Wed','Thu','Fri'].map(day => {
+                      const selected = newSubject.scheduleDays.includes(day)
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            const days = selected
+                              ? newSubject.scheduleDays.filter(d => d !== day)
+                              : [...newSubject.scheduleDays, day]
+                            setNewSubject({ ...newSubject, scheduleDays: days })
+                          }}
+                          className={`h-9 w-11 rounded-lg text-xs font-bold transition-all active:scale-95 border ${
+                            selected
+                              ? 'bg-[#003876] text-white border-[#002050] shadow-sm'
+                              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          {day.slice(0, day === 'Thu' ? 2 : 1)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* Time pickers */}
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={13} className="text-slate-400" />
+                    <input
+                      type="time"
+                      value={newSubject.startTime}
+                      onChange={e => setNewSubject({ ...newSubject, startTime: e.target.value })}
+                      className="skeu-input h-9 px-2 text-sm rounded-lg w-[110px]"
+                    />
+                    <span className="text-xs text-slate-400">to</span>
+                    <input
+                      type="time"
+                      value={newSubject.endTime}
+                      onChange={e => setNewSubject({ ...newSubject, endTime: e.target.value })}
+                      className="skeu-input h-9 px-2 text-sm rounded-lg w-[110px]"
+                    />
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
+
+            {/* Smart roster notice — shown when section has no existing data */}
+            {showRosterNotice && (
+              <div
+                className="mb-4 rounded-xl px-4 py-3 text-sm flex flex-col gap-2 animate-in slide-in-from-top-1 fade-in duration-200"
+                style={{ background: '#FFFBEC', border: '1px solid #E8D080' }}
+              >
+                <div className="flex items-center gap-2 font-bold" style={{ color: '#9A6800' }}>
+                  <AlertTriangle size={14} />
+                  No student data found for Section <span className="font-black">{enteredSection}</span>
+                </div>
+                <p className="text-xs" style={{ color: '#8A7040' }}>
+                  This section isn't in our system yet. After adding, you'll need to set up the student roster manually or use AI Camera to scan a class list.
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5" style={{ background: '#FFF0C0', border: '1px solid #E8D080', color: '#9A6800' }}>
+                    <UserPlus size={11} /> Manual entry available in Attendance → Section Roster
+                  </span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5" style={{ background: '#F0F0FF', border: '1px solid #C0C0F0', color: '#4040A0' }}>
+                    <Camera size={11} /> AI Camera scan also available
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* If it IS the adviser's own section, show green confirmation */}
+            {isAdviserSection && enteredSection && newSubject.subject.trim() && (
+              <div
+                className="mb-4 rounded-xl px-4 py-3 text-sm flex items-center gap-2 animate-in slide-in-from-top-1 fade-in duration-200"
+                style={{ background: '#E8F7EE', border: '1px solid #A8D8BA' }}
+              >
+                <Users size={14} style={{ color: '#1C6B40' }} />
+                <span style={{ color: '#1C6B40' }}>
+                  <strong>{schoolInfo.section}</strong> masterlist detected — {globalStudents.length} students will be auto-linked to this subject's attendance.
+                </span>
+              </div>
+            )}
+
             <button onClick={handleAdd} className="skeu-btn h-9 px-4 rounded-lg text-sm flex items-center gap-2">
               <Plus size={14} /> Add to Workload
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Cloud fetch status toast */}
+      {cloudFetchStatus === 'checking' && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 shadow-sm animate-in fade-in duration-200">
+          <Loader2 size={16} className="animate-spin shrink-0" />
+          <span className="text-sm font-medium">Checking cloud database for student roster from the section adviser...</span>
+        </div>
+      )}
+      {cloudFetchStatus === 'found' && (
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 fade-in duration-300">
+          <CloudDownload size={16} className="shrink-0" />
+          <span className="text-sm font-medium">✅ Found {cloudStudentCount} students from the section adviser's database! Roster auto-imported.</span>
+        </div>
+      )}
+      {cloudFetchStatus === 'not_found' && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 fade-in duration-300">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span className="text-sm font-medium">Section adviser not found in our system. Go to Attendance → Section Roster to add students manually, via Excel/CSV, or AI Camera.</span>
         </div>
       )}
 
@@ -230,14 +443,26 @@ export default function WorkloadDashboard() {
                       <div className="flex items-center gap-2">
                         <Users size={13} /> {w.students} Enrolled Students
                       </div>
-                      <div className="text-xs">{w.schedule}</div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock size={12} />
+                        {w.scheduleDays?.length ? (
+                          <span>
+                            <span className="font-semibold text-slate-600">{w.scheduleDays.join(' ')}</span>
+                            {w.startTime && w.endTime && (
+                              <span className="ml-1 text-slate-400">• {formatTime12(w.startTime)} – {formatTime12(w.endTime)}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span>{w.schedule}</span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex gap-2 mt-auto pt-2 border-t border-slate-100">
                       <Link href={`/ecr/${w.slug}`} className="skeu-btn flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
                         <FileOutput size={12} /> E-Class Record
                       </Link>
-                      <Link href={`/attendance/${w.slug}`} className="skeu-btn-ghost flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors hover:bg-slate-50 active:scale-95 text-slate-700 bg-white">
+                      <Link href={`/subject-attendance/${w.slug}`} className="skeu-btn-ghost flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-200 transition-colors hover:bg-slate-50 active:scale-95 text-slate-700 bg-white">
                         <Users size={12} /> Attendance
                       </Link>
                     </div>

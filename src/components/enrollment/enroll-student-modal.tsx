@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,10 +16,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Wand2, UploadCloud, Loader2, CheckCircle2 } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
-import { useRef } from "react"
+import { toast } from "sonner"
 
 export function EnrollStudentModal() {
   const [activeTab, setActiveTab] = useState<'manual' | 'ai' | 'bulk'>('manual')
+  const [csrfToken, setCsrfToken] = useState('')
   const [open, setOpen] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [scanSuccess, setScanSuccess] = useState(false)
@@ -33,6 +34,18 @@ export function EnrollStudentModal() {
     suffix: "",
     sex: "M"
   })
+
+  useEffect(() => {
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -76,7 +89,10 @@ export function EnrollStudentModal() {
       try {
         const res = await fetch('/api/extract-form', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || ''
+          },
           body: JSON.stringify({ base64Image })
         })
 
@@ -108,17 +124,17 @@ export function EnrollStudentModal() {
         setTimeout(() => {
             setScanSuccess(false)
             if (validStudents > 0) {
-               alert(`AI OCR Successfully extracted and enrolled ${validStudents} student(s) into the masterlist!`)
+               toast.success(`AI OCR Successfully extracted and enrolled ${validStudents} student(s) into the masterlist!`)
                setOpen(false)
             } else {
-               alert(`AI could not identify clear student data from the image.`)
+               toast.error(`AI could not identify clear student data from the image.`)
             }
             setActiveTab('manual')
         }, 1200)
 
       } catch (error) {
         console.error(error)
-        alert('OCR Failed. Please ensure your OpenAI API Key is in .env.local')
+        toast.error('OCR Failed. Please ensure your OpenAI API Key is in .env.local')
         setIsScanning(false)
       }
     }
@@ -149,7 +165,7 @@ export function EnrollStudentModal() {
         }
     })
     
-    alert(`Successfully bulk-enrolled ${addedCount} students into the local matrix!`)
+    toast.success(`Successfully bulk-enrolled ${addedCount} students into the local matrix!`)
     setOpen(false)
     setActiveTab('manual')
   }

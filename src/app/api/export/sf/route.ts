@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import ExcelJS from 'exceljs'
+import path from 'path'
+import fs from 'fs'
+import { generateToken, validateToken } from '@/lib/csrf'
+import { checkRateLimit, cleanupRateLimits } from '@/lib/rateLimit'
 
 // ─── Shared Style Helpers ─────────────────────────────────────────────────────
 const GREEN = '1C6B40'
@@ -38,6 +43,49 @@ function getCellText(value: any): string {
   return String(value);
 }
 
+// ─── Grade-Level Template Resolver ────────────────────────────────────────────
+// Returns the correct template file path based on grade level.
+// SF1-7: All grade levels use the same blank DepEd template.
+// SF8:   Universal nutritional status form.
+// SF9:   JHS only (ES version is .docx — not supported).
+// SF10:  Grade-specific permanent academic record.
+// SHS:   Senior High School forms (Grades 11-12).
+function getGradeNum(gradeLevel: string | number | undefined): number {
+  if (!gradeLevel) return 8
+  const s = String(gradeLevel).replace(/[^0-9]/g, '')
+  return parseInt(s) || 8
+}
+
+function getTemplatePath(formType: string, gradeLevel?: string | number): string {
+  const grade = getGradeNum(gradeLevel)
+  const base = path.join(process.cwd(), 'public', 'templates')
+
+  switch (formType) {
+    case 'sf1': case 'sf2': case 'sf3': case 'sf4': case 'sf5': case 'sf6': case 'sf7':
+      return path.join(base, 'School Forms (1-7).xlsx')
+
+    case 'sf8':
+      return path.join(base, 'SF8.xlsx')
+
+    case 'sf9':
+      return path.join(base, 'SF9-JHS.xlsx')
+
+    case 'sf10':
+      if (grade >= 11) return path.join(base, 'SF10-SHS.xlsx')
+      if (grade >= 7)  return path.join(base, 'SF10-JHS-2025.xlsx')
+      if (grade >= 4)  return path.join(base, 'SF10-ES-G4.xlsx')
+      return path.join(base, 'SF10-ES-G1.xlsx')
+
+    case 'shs':
+      return path.join(base, 'Senior High School Forms.xlsx')
+
+    case 'composite':
+      return path.join(base, 'Composite G8 ARIES.xlsx')
+
+    default:
+      return path.join(base, 'School Forms (1-7).xlsx')
+  }
+}
 
 // ─── SF1 Route (Masterlist) ───────────────────────────────────────────────────
 async function buildSF1(students: any[], schoolInfo: any) {
@@ -210,11 +258,9 @@ function keepOnlySheet(wb: ExcelJS.Workbook, sheetName: string) {
 
 // ─── SF2 Route (Daily Attendance) ─────────────────────────────────────────────
 async function buildSF2(students: any[], attendance: Record<string, any[]>, schoolInfo: any, year: number, month: number) {
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
+  const templatePath = getTemplatePath('sf2', schoolInfo?.gradeLevel)
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template School-Forms-1-7 .xlsx not found in public/templates")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -274,9 +320,35 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
   ws.getRow(12).height = 15
   ws.getRow(13).height = 15
 
-  // Fixed Row Placements for SF2 Matrix
-  let currentRow = 14
+  // ─── Dynamic Row Placements for SF2 Matrix ────────────────────────────────────
   const males = students.filter((s: any) => s.sex === 'M')
+  const females = students.filter((s: any) => s.sex === 'F')
+
+  let maleHeaderRow = 0
+  let femaleHeaderRow = 0
+  for (let r = 1; r < 120; r++) {
+    const val = getCellText(ws.getCell(`B${r}`).value).toUpperCase().trim()
+    if (!maleHeaderRow && (val === 'MALE' || (val.includes('MALE') && !val.includes('FEMALE')))) maleHeaderRow = r
+    if (!femaleHeaderRow && (val === 'FEMALE' || val.includes('FEMALE'))) femaleHeaderRow = r
+  }
+  if (!maleHeaderRow) maleHeaderRow = 13
+  if (!femaleHeaderRow) femaleHeaderRow = 48
+
+  let maleStartRow = maleHeaderRow + 1
+  let maleTotalRow = femaleHeaderRow - 1
+  let maleCapacity = maleTotalRow - maleStartRow
+
+  let insertedMaleRows = 0
+  if (males.length > maleCapacity) {
+    insertedMaleRows = males.length - maleCapacity
+    for (let i = 0; i < insertedMaleRows; i++) {
+      ws.insertRow(maleTotalRow + i, [])
+    }
+    femaleHeaderRow += insertedMaleRows
+    maleTotalRow += insertedMaleRows
+  }
+
+  let currentRow = maleStartRow
   males.forEach((student: any) => {
       ws.getCell(`B${currentRow}`).value = student.name
       let absentCount = 0, tardyCount = 0
@@ -301,7 +373,7 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
       currentRow++
   })
 
-  // ─── MALE TOTAL Per Day (row 48): count present (P or L, i.e. NOT absent) ───
+  // ─── MALE TOTAL Per Day ───────────────────────────────────────────────────────
   weekdays.slice(0, 25).forEach((dayObj, i) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayObj.d).padStart(2, '0')}`
     let presentCount = 0
@@ -309,13 +381,40 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
       const rec = (attendance[s.lrn] || []).find(r => r.date === dateStr)
       if (rec && rec.status !== 'A') presentCount++
     })
-    ws.getCell(`${dateCols[i]}48`).value = presentCount > 0 ? presentCount : ''
+    ws.getCell(`${dateCols[i]}${maleTotalRow}`).value = presentCount > 0 ? presentCount : ''
   })
 
-  let femaleStartRow = 49 // Verified: female names start at row 49
-  
+  let femaleStartRow = femaleHeaderRow + 1
+
+  // Find female total row dynamically
+  let femaleTotalRow = femaleStartRow + 1
+  let combinedTotalRow = femaleStartRow + 2
+  for (let r = femaleStartRow; r < femaleStartRow + 60 + insertedMaleRows; r++) {
+    const val = getCellText(ws.getCell(`B${r}`).value).toUpperCase().trim()
+    if (val.includes('TOTAL')) {
+      if (val.includes('FEMALE')) {
+        femaleTotalRow = r
+      } else if (!val.includes('MALE')) {
+        combinedTotalRow = r
+        break
+      }
+    }
+  }
+  if (femaleTotalRow <= femaleStartRow) femaleTotalRow = femaleStartRow + 25
+  if (combinedTotalRow <= femaleTotalRow) combinedTotalRow = femaleTotalRow + 1
+
+  let femaleCapacity = femaleTotalRow - femaleStartRow
+  let insertedFemaleRows = 0
+  if (females.length > femaleCapacity) {
+    insertedFemaleRows = females.length - femaleCapacity
+    for (let i = 0; i < insertedFemaleRows; i++) {
+      ws.insertRow(femaleTotalRow + i, [])
+    }
+    combinedTotalRow += insertedFemaleRows
+    femaleTotalRow += insertedFemaleRows
+  }
+
   currentRow = femaleStartRow
-  const females = students.filter((s: any) => s.sex === 'F')
   females.forEach((student: any) => {
       ws.getCell(`B${currentRow}`).value = student.name
       let absentCount = 0, tardyCount = 0
@@ -340,7 +439,7 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
       currentRow++
   })
 
-  // ─── FEMALE TOTAL Per Day (row 74) & Combined TOTAL (row 75) ───
+  // ─── FEMALE TOTAL Per Day & Combined TOTAL ────────────────────────────────────
   weekdays.slice(0, 25).forEach((dayObj, i) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayObj.d).padStart(2, '0')}`
     let fPresentCount = 0
@@ -348,10 +447,10 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
       const rec = (attendance[s.lrn] || []).find(r => r.date === dateStr)
       if (rec && rec.status !== 'A') fPresentCount++
     })
-    const maleVal = typeof ws.getCell(`${dateCols[i]}48`).value === 'number' ? ws.getCell(`${dateCols[i]}48`).value as number : 0
-    ws.getCell(`${dateCols[i]}74`).value = fPresentCount > 0 ? fPresentCount : ''
+    const maleVal = typeof ws.getCell(`${dateCols[i]}${maleTotalRow}`).value === 'number' ? ws.getCell(`${dateCols[i]}${maleTotalRow}`).value as number : 0
+    ws.getCell(`${dateCols[i]}${femaleTotalRow}`).value = fPresentCount > 0 ? fPresentCount : ''
     const combined = maleVal + fPresentCount
-    ws.getCell(`${dateCols[i]}75`).value = combined > 0 ? combined : ''
+    ws.getCell(`${dateCols[i]}${combinedTotalRow}`).value = combined > 0 ? combined : ''
   })
 
   // ─── Summary for the Month (rows 77-97) ──────────────────────────
@@ -382,6 +481,9 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
   // User-supplied summary fields (from payload)
   const sf2Summary = (schoolInfo as any)?.sf2Summary || {}
 
+  const summaryShift = insertedMaleRows + insertedFemaleRows
+  const sBase = (base: number) => base + summaryShift
+
   // Helper: set value on vertically-merged pair, clearing any percentage numFmt and rotation
   const setSummaryCell = (col: string, topRow: number, val: number | string) => {
     const botRow = topRow + 1
@@ -398,30 +500,29 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
   }
 
   // R77: Month & No. of Days
-  // AB77 is too narrow for "Month:" — merge AB77:AD77 and put combined label+value
-  ws.mergeCells('AB77:AD77')
-  ws.getCell('AB77').value = `Month:  ${monthName}`
-  ws.getCell('AB77').font = { name: 'Arial Narrow', size: 11, bold: true }
-  ws.getCell('AB77').alignment = { vertical: 'middle' }
-  ws.getCell('AG77').value = schoolDays
-  ws.getCell('AG77').font = { name: 'Arial', size: 11, bold: true }
-  ws.getCell('AG77').alignment = { horizontal: 'center', vertical: 'middle' }
+  ws.mergeCells(`AB${sBase(77)}:AD${sBase(77)}`)
+  ws.getCell(`AB${sBase(77)}`).value = `Month:  ${monthName}`
+  ws.getCell(`AB${sBase(77)}`).font = { name: 'Arial Narrow', size: 11, bold: true }
+  ws.getCell(`AB${sBase(77)}`).alignment = { vertical: 'middle' }
+  ws.getCell(`AG${sBase(77)}`).value = schoolDays
+  ws.getCell(`AG${sBase(77)}`).font = { name: 'Arial', size: 11, bold: true }
+  ws.getCell(`AG${sBase(77)}`).alignment = { horizontal: 'center', vertical: 'middle' }
   ws.getColumn('AG').width = 8
 
   // R79-80: Enrollment as of 1st Friday of June
-  setSummaryCell('AH', 79, sf2Summary.enrollmentM ?? maleCount)
-  setSummaryCell('AI', 79, sf2Summary.enrollmentF ?? femaleCount)
-  setSummaryCell('AJ', 79, (sf2Summary.enrollmentM ?? maleCount) + (sf2Summary.enrollmentF ?? femaleCount))
+  setSummaryCell('AH', sBase(79), sf2Summary.enrollmentM ?? maleCount)
+  setSummaryCell('AI', sBase(79), sf2Summary.enrollmentF ?? femaleCount)
+  setSummaryCell('AJ', sBase(79), (sf2Summary.enrollmentM ?? maleCount) + (sf2Summary.enrollmentF ?? femaleCount))
 
   // R81-82: Late Enrollment
-  setSummaryCell('AH', 81, sf2Summary.lateEnrollmentM ?? 0)
-  setSummaryCell('AI', 81, sf2Summary.lateEnrollmentF ?? 0)
-  setSummaryCell('AJ', 81, (sf2Summary.lateEnrollmentM ?? 0) + (sf2Summary.lateEnrollmentF ?? 0))
+  setSummaryCell('AH', sBase(81), sf2Summary.lateEnrollmentM ?? 0)
+  setSummaryCell('AI', sBase(81), sf2Summary.lateEnrollmentF ?? 0)
+  setSummaryCell('AJ', sBase(81), (sf2Summary.lateEnrollmentM ?? 0) + (sf2Summary.lateEnrollmentF ?? 0))
 
   // R83-84: Registered Learner as of end of month
-  setSummaryCell('AH', 83, maleCount + (sf2Summary.lateEnrollmentM ?? 0))
-  setSummaryCell('AI', 83, femaleCount + (sf2Summary.lateEnrollmentF ?? 0))
-  setSummaryCell('AJ', 83, totalCount + (sf2Summary.lateEnrollmentM ?? 0) + (sf2Summary.lateEnrollmentF ?? 0))
+  setSummaryCell('AH', sBase(83), maleCount + (sf2Summary.lateEnrollmentM ?? 0))
+  setSummaryCell('AI', sBase(83), femaleCount + (sf2Summary.lateEnrollmentF ?? 0))
+  setSummaryCell('AJ', sBase(83), totalCount + (sf2Summary.lateEnrollmentM ?? 0) + (sf2Summary.lateEnrollmentF ?? 0))
 
   // R85-86: Percentage of Enrollment
   const regM = maleCount + (sf2Summary.lateEnrollmentM ?? 0)
@@ -430,19 +531,19 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
   const enrollM = sf2Summary.enrollmentM ?? maleCount
   const enrollF = sf2Summary.enrollmentF ?? femaleCount
   const enrollT = enrollM + enrollF
-  setSummaryCell('AH', 85, enrollM > 0 ? Math.round((regM / enrollM) * 100) : 0)
-  setSummaryCell('AI', 85, enrollF > 0 ? Math.round((regF / enrollF) * 100) : 0)
-  setSummaryCell('AJ', 85, enrollT > 0 ? Math.round((regT / enrollT) * 100) : 0)
+  setSummaryCell('AH', sBase(85), enrollM > 0 ? Math.round((regM / enrollM) * 100) : 0)
+  setSummaryCell('AI', sBase(85), enrollF > 0 ? Math.round((regF / enrollF) * 100) : 0)
+  setSummaryCell('AJ', sBase(85), enrollT > 0 ? Math.round((regT / enrollT) * 100) : 0)
 
   // R87: Average Daily Attendance (single row)
-  ws.getCell('AH87').value = mDailyAvg
-  ws.getCell('AI87').value = fDailyAvg
-  ws.getCell('AJ87').value = tDailyAvg
+  ws.getCell(`AH${sBase(87)}`).value = mDailyAvg
+  ws.getCell(`AI${sBase(87)}`).value = fDailyAvg
+  ws.getCell(`AJ${sBase(87)}`).value = tDailyAvg
 
   // R88-89: Percentage of Attendance
-  setSummaryCell('AH', 88, mPct)
-  setSummaryCell('AI', 88, fPct)
-  setSummaryCell('AJ', 88, tPct)
+  setSummaryCell('AH', sBase(88), mPct)
+  setSummaryCell('AI', sBase(88), fPct)
+  setSummaryCell('AJ', sBase(88), tPct)
 
   // R90-91: 5 consecutive absences (auto-computed)
   let consAbsM = 0, consAbsF = 0
@@ -458,33 +559,31 @@ async function buildSF2(students: any[], attendance: Record<string, any[]>, scho
   }
   males.forEach(s => { if (checkConsecutive(s.lrn)) consAbsM++ })
   females.forEach(s => { if (checkConsecutive(s.lrn)) consAbsF++ })
-  // Force string to bypass percentage numFmt that won't clear on merged cells
-  setSummaryCell('AH', 90, String(consAbsM))
-  setSummaryCell('AI', 90, String(consAbsF))
-  setSummaryCell('AJ', 90, String(consAbsM + consAbsF))
+  setSummaryCell('AH', sBase(90), String(consAbsM))
+  setSummaryCell('AI', sBase(90), String(consAbsF))
+  setSummaryCell('AJ', sBase(90), String(consAbsM + consAbsF))
 
   // R92-93: Drop out
-  setSummaryCell('AH', 92, sf2Summary.dropOutM ?? 0)
-  setSummaryCell('AI', 92, sf2Summary.dropOutF ?? 0)
-  setSummaryCell('AJ', 92, (sf2Summary.dropOutM ?? 0) + (sf2Summary.dropOutF ?? 0))
+  setSummaryCell('AH', sBase(92), sf2Summary.dropOutM ?? 0)
+  setSummaryCell('AI', sBase(92), sf2Summary.dropOutF ?? 0)
+  setSummaryCell('AJ', sBase(92), (sf2Summary.dropOutM ?? 0) + (sf2Summary.dropOutF ?? 0))
 
   // R94-95: Transferred out
-  setSummaryCell('AH', 94, sf2Summary.transferredOutM ?? 0)
-  setSummaryCell('AI', 94, sf2Summary.transferredOutF ?? 0)
-  setSummaryCell('AJ', 94, (sf2Summary.transferredOutM ?? 0) + (sf2Summary.transferredOutF ?? 0))
+  setSummaryCell('AH', sBase(94), sf2Summary.transferredOutM ?? 0)
+  setSummaryCell('AI', sBase(94), sf2Summary.transferredOutF ?? 0)
+  setSummaryCell('AJ', sBase(94), (sf2Summary.transferredOutM ?? 0) + (sf2Summary.transferredOutF ?? 0))
 
   // R96-97: Transferred in
-  setSummaryCell('AH', 96, sf2Summary.transferredInM ?? 0)
-  setSummaryCell('AI', 96, sf2Summary.transferredInF ?? 0)
-  setSummaryCell('AJ', 96, (sf2Summary.transferredInM ?? 0) + (sf2Summary.transferredInF ?? 0))
+  setSummaryCell('AH', sBase(96), sf2Summary.transferredInM ?? 0)
+  setSummaryCell('AI', sBase(96), sf2Summary.transferredInF ?? 0)
+  setSummaryCell('AJ', sBase(96), (sf2Summary.transferredInM ?? 0) + (sf2Summary.transferredInF ?? 0))
 
-  // Signature — adviser name centered above "(Signature of Teacher over Printed Name)" at AC102
-  // Template has thin bottom border on AD101:AI101 — merge that range for the name
-  ws.mergeCells('AD101:AI101')
-  ws.getCell('AD101').value = si.adviserName || ''
-  ws.getCell('AD101').alignment = { horizontal: 'center', vertical: 'bottom' }
-  ws.getCell('AD101').font = { name: 'Arial', size: 11, bold: true }
-  ws.getCell('AD101').border = { bottom: { style: 'thin' } }
+  // Signature
+  ws.mergeCells(`AD${sBase(101)}:AI${sBase(101)}`)
+  ws.getCell(`AD${sBase(101)}`).value = si.adviserName || ''
+  ws.getCell(`AD${sBase(101)}`).alignment = { horizontal: 'center', vertical: 'bottom' }
+  ws.getCell(`AD${sBase(101)}`).font = { name: 'Arial', size: 11, bold: true }
+  ws.getCell(`AD${sBase(101)}`).border = { bottom: { style: 'thin' } }
 
   return wb
 }
@@ -495,11 +594,9 @@ async function buildSF4(students: any[], attendance: Record<string, any[]>, scho
   const monthName = MONTHS[month]
 
   // Read template
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
+  const templatePath = getTemplatePath('sf4', schoolInfo?.gradeLevel)
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template School-Forms-1-7 .xlsx not found in public/templates")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -592,11 +689,9 @@ async function buildSF4(students: any[], attendance: Record<string, any[]>, scho
 
 // ─── SF5 Route (Promotion & Proficiency) ───────────────────────────────────────
 async function buildSF5(students: any[], schoolInfo: any) {
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
+  const templatePath = getTemplatePath('sf5', schoolInfo?.gradeLevel)
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template School-Forms-1-7 .xlsx not found")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -676,11 +771,9 @@ async function buildSF5(students: any[], schoolInfo: any) {
 // ─── SF3 Route (Books Issued) ─────────────────────────────────────────────────
 // books is now: Record<lrn, Record<subjectKey, { dateIssued?, dateReturned? }>>
 async function buildSF3(students: any[], books: Record<string, Record<string, any>>, schoolInfo: any) {
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
+  const templatePath = getTemplatePath('sf3', schoolInfo?.gradeLevel)
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template School-Forms-1-7 .xlsx not found")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -774,12 +867,20 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
         const colPair = SUBJECT_COL_MAP[subject]
         if (!colPair) return // unknown subject — skip
         ws.getCell(`${colPair[0]}${rowNum}`).value = fmtDate(rec.dateIssued)
-        ws.getCell(`${colPair[1]}${rowNum}`).value = fmtDate(rec.dateReturned)
-        // Only collect remarks for unreturned books
-        if (!rec.dateReturned && rec.remarks) remarksArr.push(rec.remarks)
+        // Date Returned cell: actual date if returned, else FM/TDO/NEG code if set
+        if (rec.dateReturned) {
+          ws.getCell(`${colPair[1]}${rowNum}`).value = fmtDate(rec.dateReturned)
+        } else if (rec.returnCode) {
+          ws.getCell(`${colPair[1]}${rowNum}`).value = rec.returnCode
+          ws.getCell(`${colPair[1]}${rowNum}`).font = { name: 'Arial', size: 8, bold: true, color: { argb: 'FFCC0000' } }
+          ws.getCell(`${colPair[1]}${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle' }
+        } else {
+          ws.getCell(`${colPair[1]}${rowNum}`).value = ''
+        }
+        // Collect remarks (LLTR/TLTR/PTL) for the Remark/Action Taken column
+        if (rec.remarks) remarksArr.push(rec.remarks)
       })
       const allRemarks = remarksArr.join('; ')
-      console.log(`[SF3 DEBUG] ${student.name} | sBooks=`, JSON.stringify(sBooks), `| remarks="${allRemarks}"`)
       ws.getCell(`${remarksCol}${rowNum}`).value = allRemarks || null
       ws.getCell(`${remarksCol}${rowNum}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
       ws.getCell(`${remarksCol}${rowNum}`).font = { name: 'Arial', size: 8 }
@@ -816,11 +917,9 @@ async function buildSF3(students: any[], books: Record<string, Record<string, an
 
 // ─── Composite Route (Quarterly Grades) ───────────────────────────────────────
 async function buildComposite(students: any[]) {
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'Composite G8 ARIES.xlsx')
+  const templatePath = getTemplatePath('composite')
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template Composite G8 ARIES.xlsx not found")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -902,11 +1001,9 @@ async function buildComposite(students: any[]) {
 
 // ─── SF6 Route (Promotion Summary) ────────────────────────────────────────────
 async function buildSF6(students: any[], schoolInfo: any) {
-  const path = require('path')
-  const fs = require('fs')
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'School-Forms-1-7 .xlsx')
+  const templatePath = getTemplatePath('sf6', schoolInfo?.gradeLevel)
   
-  if (!fs.existsSync(templatePath)) throw new Error("Template School-Forms-1-7 .xlsx not found")
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
 
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templatePath)
@@ -1000,51 +1097,259 @@ async function buildSF6(students: any[], schoolInfo: any) {
   return wb
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
-export async function POST(req: Request) {
-  try {
-    const body = await req.json()
-    const { form, students, attendance, schoolInfo, year, month } = body
+// ─── SF8 Route (Health & Nutrition) ───────────────────────────────────────────
+async function buildSF8(students: any[], schoolInfo: any) {
+  const templatePath = getTemplatePath('sf8', schoolInfo?.gradeLevel)
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.readFile(templatePath)
 
-    let wb: ExcelJS.Workbook
+  const ws = wb.getWorksheet('Nutritional Status')
+  if (!ws) throw new Error("Nutritional Status sheet not found")
+
+  const si = schoolInfo || {}
+  ws.getCell('C5').value = si.schoolName || ''
+  ws.getCell('H5').value = si.district || ''
+  ws.getCell('K5').value = si.division || ''
+  ws.getCell('N5').value = si.region || ''
+  ws.getCell('A7').value = si.schoolId || ''
+  ws.getCell('E7').value = si.gradeLevel || ''
+  ws.getCell('G7').value = si.section || ''
+  ws.getCell('N7').value = si.schoolYear || ''
+
+  const males = students.filter(s => s.sex === 'M').sort((a,b) => a.name.localeCompare(b.name))
+  const females = students.filter(s => s.sex === 'F').sort((a,b) => a.name.localeCompare(b.name))
+
+  // Find Male and Female start rows
+  let mStart = 12, fStart = 65
+  for (let r = 10; r <= 80; r++) {
+    const val = getCellText(ws.getCell(`A${r}`).value).toUpperCase()
+    if (val.includes('MALE') && !val.includes('FEMALE')) mStart = r + 1
+    if (val.includes('FEMALE')) fStart = r + 1
+  }
+
+  // Populate Males
+  males.forEach((m, idx) => {
+    const r = mStart + idx
+    ws.getCell(`A${r}`).value = idx + 1
+    ws.getCell(`B${r}`).value = m.lrn
+    ws.getCell(`C${r}`).value = m.name
+  })
+
+  // Populate Females
+  females.forEach((f, idx) => {
+    const r = fStart + idx
+    ws.getCell(`A${r}`).value = idx + 1
+    ws.getCell(`B${r}`).value = f.lrn
+    ws.getCell(`C${r}`).value = f.name
+  })
+
+  return wb
+}
+
+// ─── SF9 Route (Report Card) ──────────────────────────────────────────────────
+async function buildSF9(students: any[], grades: Record<string, any[]>, schoolInfo: any, attendance: Record<string, any[]>, exportMode: string, studentLrn?: string) {
+  const templatePath = getTemplatePath('sf9', schoolInfo?.gradeLevel)
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
+  
+  const targetStudents = exportMode === 'specific_student' && studentLrn 
+    ? students.filter(s => s.lrn === studentLrn)
+    : students
+
+  const JSZip = (await import('jszip')).default
+  const zip = new JSZip()
+  let singleWb: ExcelJS.Workbook | null = null
+
+  for (const student of targetStudents) {
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.readFile(templatePath)
+    
+    // Basic Injection
+    const ws1 = wb.getWorksheet('Sheet1') // Grades sheet usually
+    const ws2 = wb.getWorksheet('Sheet2') // Attendance sheet usually
+    if (ws2) {
+      ws2.getCell('P15').value = `Name: ${student.name}`
+      ws2.getCell('P16').value = `Learner's Reference Number: ${student.lrn}`
+      ws2.getCell('P17').value = `Age: _____    Sex: ${student.sex}`
+      ws2.getCell('P18').value = `Grade: ${schoolInfo?.gradeLevel || ''} Section: ${schoolInfo?.section || ''}`
+      ws2.getCell('P20').value = `School Year: ${schoolInfo?.schoolYear || ''}`
+    }
+
+    if (exportMode === 'specific_student') {
+      singleWb = wb
+      break
+    } else {
+      const buffer = await wb.xlsx.writeBuffer()
+      zip.file(`SF9_${student.name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`, buffer as ArrayBuffer)
+    }
+  }
+
+  if (exportMode === 'specific_student') return singleWb
+  return zip
+}
+
+// ─── SF10 Route (Permanent Record) ────────────────────────────────────────────
+async function buildSF10(students: any[], grades: Record<string, any[]>, schoolInfo: any, exportMode: string, studentLrn?: string) {
+  const templatePath = getTemplatePath('sf10', schoolInfo?.gradeLevel)
+  if (!fs.existsSync(templatePath)) throw new Error(`Template not found: ${path.basename(templatePath)}`)
+  
+  const targetStudents = exportMode === 'specific_student' && studentLrn 
+    ? students.filter(s => s.lrn === studentLrn)
+    : students
+
+  const JSZip = (await import('jszip')).default
+  const zip = new JSZip()
+  let singleWb: ExcelJS.Workbook | null = null
+
+  for (const student of targetStudents) {
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.readFile(templatePath)
+    
+    // Basic Injection
+    const front = wb.getWorksheet(1) // Usually front sheet
+    if (front) {
+      // Basic info
+      const isES = templatePath.includes('-ES')
+      const isSHS = templatePath.includes('-SHS')
+      
+      if (isSHS) {
+        // Handle SHS specific fields
+      } else if (isES) {
+        // Handle ES specific fields
+        front.getCell('C5').value = `LAST NAME: ${student.name.split(',')[0] || ''}`
+        front.getCell('I5').value = `FIRST NAME: ${student.name.split(',')[1] || ''}`
+        front.getCell('O6').value = `Birthdate (mm/dd/yyyy): `
+        front.getCell('AA6').value = `Sex: ${student.sex === 'M' ? 'Male' : 'Female'}`
+      } else {
+        // JHS
+        front.getCell('A7').value = `LAST NAME: ${student.name.split(',')[0] || ''}`
+        front.getCell('E7').value = `FIRST NAME: ${student.name.split(',')[1] || ''}  NAME EXTN. (Jr,I,II): _______`
+        front.getCell('F8').value = `Birthdate (mm/dd/yyyy): `
+        front.getCell('K8').value = `Sex: ${student.sex === 'M' ? 'Male' : 'Female'}`
+      }
+    }
+
+    if (exportMode === 'specific_student') {
+      singleWb = wb
+      break
+    } else {
+      const buffer = await wb.xlsx.writeBuffer()
+      zip.file(`SF10_${student.name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`, buffer as ArrayBuffer)
+    }
+  }
+
+  if (exportMode === 'specific_student') return singleWb
+  return zip
+}
+
+// ─── GET handler (CSRF token provisioning) ──────────────────────────────────────
+export async function GET() {
+  const token = generateToken()
+  // Also set the token as a cookie so the client can read it back
+  const resp = NextResponse.json({ csrfToken: token })
+  resp.cookies.set('csrf-token', token, {
+    path: '/',
+    sameSite: 'strict',
+    httpOnly: false, // client needs to read it for the header
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 3600, // 1 hour
+  })
+  return resp
+}
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  try {
+    // ── Rate Limiting ───────────────────────────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || '127.0.0.1'
+    cleanupRateLimits()
+    if (!checkRateLimit(ip, 'export/sf')) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
+    // ── CSRF Validation ─────────────────────────────────────────────────────
+    const csrfHeader = req.headers.get('x-csrf-token')
+    const csrfCookie = req.cookies.get('csrf-token')?.value
+    if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie || !validateToken(csrfHeader)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
+
+    const body = await req.json()
+    const { form, students, attendance, schoolInfo, year, month, grades, exportMode, studentLrn } = body
+
+    let wbOrZip: ExcelJS.Workbook | any // any to allow JSZip
     let filename: string
+    let contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
     if (form === 'sf1') {
-      wb = await buildSF1(students, schoolInfo)
+      wbOrZip = await buildSF1(students, schoolInfo)
       filename = `SF1_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_${schoolInfo?.schoolYear || '2025-2026'}.xlsx`
     } else if (form === 'sf2') {
       const y = year ?? new Date().getFullYear()
       const m = month ?? new Date().getMonth()
-      wb = await buildSF2(students, attendance || {}, schoolInfo, y, m)
+      wbOrZip = await buildSF2(students, attendance || {}, schoolInfo, y, m)
       const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
       filename = `SF2_${MONTHS[m]}_${y}_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}.xlsx`
     } else if (form === 'sf4') {
       const y = year ?? new Date().getFullYear()
       const m = month ?? new Date().getMonth()
-      wb = await buildSF4(students, attendance || {}, schoolInfo, y, m)
+      wbOrZip = await buildSF4(students, attendance || {}, schoolInfo, y, m)
       const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
       filename = `SF4_${MONTHS[m]}_${y}_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}.xlsx`
     } else if (form === 'sf3') {
-      wb = await buildSF3(students, body.books || {}, schoolInfo)
+      wbOrZip = await buildSF3(students, body.books || {}, schoolInfo)
       filename = `SF3_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Report.xlsx`
     } else if (form === 'sf5') {
-      wb = await buildSF5(students, schoolInfo)
+      wbOrZip = await buildSF5(students, schoolInfo)
       filename = `SF5_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Report.xlsx`
     } else if (form === 'sf6') {
-      wb = await buildSF6(students, schoolInfo)
+      wbOrZip = await buildSF6(students, schoolInfo)
       filename = `SF6_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Report.xlsx`
+    } else if (form === 'sf8') {
+      wbOrZip = await buildSF8(students, schoolInfo)
+      filename = `SF8_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Report.xlsx`
+    } else if (form === 'sf9') {
+      wbOrZip = await buildSF9(students, grades || {}, schoolInfo, attendance || {}, exportMode || 'specific_student', studentLrn)
+      if (exportMode === 'zip_archive' || (!exportMode && !studentLrn)) {
+        filename = `SF9_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Archive.zip`
+        contentType = 'application/zip'
+      } else {
+        filename = `SF9_${studentLrn || 'Report'}.xlsx`
+      }
+    } else if (form === 'sf10') {
+      wbOrZip = await buildSF10(students, grades || {}, schoolInfo, exportMode || 'specific_student', studentLrn)
+      if (exportMode === 'zip_archive' || (!exportMode && !studentLrn)) {
+        filename = `SF10_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}_Archive.zip`
+        contentType = 'application/zip'
+      } else {
+        filename = `SF10_${studentLrn || 'Report'}.xlsx`
+      }
     } else if (form === 'composite') {
-      wb = await buildComposite(students)
+      wbOrZip = await buildComposite(students)
       filename = `Composite_Grades_${(schoolInfo?.section || 'Section').replace(/\s/g, '_')}.xlsx`
     } else {
-      return Response.json({ error: 'Unknown form type. Use sf1 or sf2.' }, { status: 400 })
+      return Response.json({ error: 'Unknown form type. Supported: sf1, sf2, sf3, sf4, sf5, sf6, sf8, sf9, sf10, composite' }, { status: 400 })
     }
 
-    const buffer = await wb.xlsx.writeBuffer()
+    let buffer: ArrayBuffer
+    if (contentType === 'application/zip') {
+      buffer = await wbOrZip.generateAsync({ type: "nodebuffer" })
+    } else {
+      buffer = await wbOrZip.xlsx.writeBuffer()
+    }
+
     return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`
       }
     })

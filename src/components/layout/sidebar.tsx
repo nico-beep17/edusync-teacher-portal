@@ -7,6 +7,7 @@ import {
   LayoutDashboard, ClipboardCheck, BarChart3,
   Award, BookOpen, Settings2, ChevronLeft, ChevronRight, Menu, X, Book, Trophy
 } from "lucide-react"
+import { useTeacherStore } from "@/store/useStore"
 
 const navItems = [
   { label: "ADVISORY", type: "header" as const },
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/honors", label: "Honor Roll", icon: Trophy, description: "Rankings & certificates" },
   { label: "SUBJECT TEACHING", type: "header" as const },
   { href: "/workload", label: "My Workload", icon: BookOpen, description: "ECR & grading sheets" },
+  { href: "/subject-attendance", label: "Subject Attendance", icon: ClipboardCheck, description: "Per-subject class attendance" },
   { label: "SYSTEM", type: "header" as const },
   { href: "/settings", label: "Settings", icon: Settings2, description: "Subjects, import & export" },
 ]
@@ -26,13 +28,18 @@ export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const schoolInfo = useTeacherStore(s => s.schoolInfo)
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
   if (["/login", "/register", "/paywall"].includes(pathname)) return null
 
-  const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href)
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard"
+    // Exact match for /attendance so it doesn't match /subject-attendance
+    if (href === "/attendance") return pathname === "/attendance"
+    return pathname.startsWith(href)
+  }
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -53,7 +60,7 @@ export function Sidebar() {
             border: "1px solid #D4DCE6"
           }}
         >
-          <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
+          <img src="/depaid-logo.svg" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
         </div>
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
@@ -158,8 +165,8 @@ export function Sidebar() {
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 5px rgba(0,0,0,0.06)"
             }}
           >
-            <p className="text-xs font-bold" style={{ color: "#003876" }}>Grade 8 — ARIES</p>
-            <p className="text-[10px] mt-0.5" style={{ color: "#8898AC" }}>S.Y. 2025-2026 • Quarter 1</p>
+            <p className="text-xs font-bold" style={{ color: "#003876" }}>Grade {schoolInfo.gradeLevel || '8'} — {schoolInfo.section || 'ARIES'}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#8898AC" }}>S.Y. {schoolInfo.schoolYear || '2025-2026'} • Quarter {schoolInfo.quarter || '1'}</p>
           </div>
         </div>
       )}

@@ -11,12 +11,28 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 const pageTitles: Record<string, string> = {
   "/dashboard": "Advisory Dashboard",
   "/attendance": "SF2 Daily Attendance",
+  "/subject-attendance": "Subject Attendance",
   "/composite": "Composite Grades",
   "/sf3": "SF3 Book Issuance",
   "/sf5": "SF5 Promotion & Retention",
   "/honors": "Honor Roll & Certificates",
   "/workload": "Teaching Workload",
   "/settings": "Settings",
+}
+
+const DAY_MAP: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri' }
+
+function formatTime12(t: string) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const hr = h % 12 || 12
+  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
 }
 
 export function Topbar() {
@@ -45,19 +61,61 @@ export function Topbar() {
   const gradesMap = useTeacherStore(s => s.grades)
   const attendanceMap = useTeacherStore(s => s.attendance)
   const user = useTeacherStore(s => s.user)
+  const workload = useTeacherStore(s => s.workload)
+
+  // Re-render every 30s for schedule alerts
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const iv = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(iv)
+  }, [])
 
   const handleLogout = async () => {
     const supabase = createClient()
     if (supabase) {
       await supabase.auth.signOut()
     }
+    localStorage.removeItem('depaid-teacher-storage')
+    window.location.href = '/login'
   }
 
   const searchResults = searchQuery.trim().length >= 2
     ? students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.lrn.includes(searchQuery)).slice(0, 5)
     : []
 
-  const alerts: { icon: string; text: string; type: "warn" | "error" }[] = []
+  const alerts: { icon: string; text: string; type: "warn" | "error" | "info" }[] = []
+
+  // ── Schedule-based alerts ──────────────────────────────────────────
+  if (mounted) {
+    const now = new Date()
+    const todayDay = DAY_MAP[now.getDay()] // Mon-Fri or undefined for weekends
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+
+    if (todayDay) {
+      const todaySubjects = workload.filter(w =>
+        w.scheduleDays?.includes(todayDay) && w.startTime && w.endTime
+      )
+
+      todaySubjects.forEach(w => {
+        const start = timeToMinutes(w.startTime!)
+        const end = timeToMinutes(w.endTime!)
+        const minsUntil = start - nowMin
+
+        if (nowMin >= start && nowMin < end) {
+          // Currently in class
+          alerts.push({ icon: '🔔', text: `You're currently teaching ${w.subject} (${w.section}) — ends ${formatTime12(w.endTime!)}`, type: 'info' })
+        } else if (minsUntil > 0 && minsUntil <= 30) {
+          // Starting soon
+          alerts.push({ icon: '📚', text: `${w.subject} (${w.section}) starts in ${minsUntil} min — ${formatTime12(w.startTime!)}`, type: 'info' })
+        } else if (minsUntil > 30 && minsUntil <= 60) {
+          // In the next hour
+          alerts.push({ icon: '⏰', text: `Upcoming: ${w.subject} (${w.section}) at ${formatTime12(w.startTime!)}`, type: 'info' })
+        }
+      })
+    }
+  }
+
+  // ── Student alerts ─────────────────────────────────────────────────
   students.forEach(s => {
     const absences = (attendanceMap[s.lrn] || []).filter((a: any) => a.status === 'A').length
     if (absences >= 2) alerts.push({ icon: '⚠️', text: `${s.name.split(',')[0]} — ${absences} absences`, type: "warn" })
@@ -78,7 +136,10 @@ export function Topbar() {
   }, [])
 
   if (["/login", "/register", "/paywall"].includes(pathname)) return null
-  const pageTitle = pageTitles[pathname] || (pathname.startsWith("/ecr/") ? "E-Class Record" : "DepAid")
+  const pageTitle = pageTitles[pathname]
+    || (pathname.startsWith("/ecr/") ? "E-Class Record" : undefined)
+    || (pathname.startsWith("/subject-attendance/") ? "Subject Attendance" : undefined)
+    || "DepAid"
 
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between px-4 lg:px-6 skeu-topbar">
@@ -229,7 +290,7 @@ export function Topbar() {
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(227,10,36,0.04)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "")}
                     >
-                      <p className="text-xs font-semibold" style={{ color: a.type === "error" ? "#C03030" : "#C07808" }}>
+                      <p className="text-xs font-semibold" style={{ color: a.type === "error" ? "#C03030" : a.type === "info" ? "#003876" : "#C07808" }}>
                         {a.icon} {a.text}
                       </p>
                     </div>
@@ -287,7 +348,7 @@ export function Topbar() {
               <span className="text-[11px] font-bold leading-none truncate w-full" style={{ color: "#111A24" }}>
                  {user?.user_metadata?.full_name || user?.email || 'Teacher I'}
               </span>
-              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#003876" }}>Teacher Portral</span>
+              <span className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: "#003876" }}>Teacher Portal</span>
             </div>
             <ChevronDown size={11} className="hidden sm:block ml-1" style={{ color: "#8898AC" }} />
           </DropdownMenuTrigger>
@@ -300,7 +361,7 @@ export function Topbar() {
               boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 12px 32px rgba(0,0,0,0.12)"
             }}
           >
-            <DropdownMenuItem className="text-xs cursor-pointer p-2 rounded-md" style={{ color: "#3A4A5E" }}>
+            <DropdownMenuItem onClick={() => window.location.href = '/settings'} className="text-xs cursor-pointer p-2 rounded-md" style={{ color: "#3A4A5E" }}>
               <Settings className="mr-2 h-3.5 w-3.5" />
               <span>Preferences</span>
             </DropdownMenuItem>

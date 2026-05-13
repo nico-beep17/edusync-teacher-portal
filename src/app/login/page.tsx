@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useTeacherStore } from "@/store/useStore"
-import { Loader2, Eye, EyeOff, Code } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,10 +19,7 @@ export default function LoginPage() {
 
   const setUser = useTeacherStore((s) => s.setUser)
 
-  const handleDevLogin = () => {
-    setUser({ email: 'dev@depaid.test', user_metadata: { full_name: 'Developer Mode', avatar_url: '' }, isDev: true })
-    router.push('/dashboard')
-  }
+
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -31,7 +29,7 @@ export default function LoginPage() {
       if (!supabase) { router.push('/'); return }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/` }
+        options: { redirectTo: `${window.location.origin}/dashboard` }
       })
       if (error) setError(error.message)
     } catch {
@@ -50,10 +48,10 @@ export default function LoginPage() {
       if (!supabase) { router.push('/'); return }
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-      router.push('/')
+      router.push('/dashboard')
     } catch {
       // Dev fallback
-      router.push('/')
+      router.push('/dashboard')
     }
   }
 
@@ -85,9 +83,9 @@ export default function LoginPage() {
             {/* Logo */}
             <div className="flex flex-col items-center text-center mb-7">
               <div className="h-16 w-16 rounded-2xl overflow-hidden mb-4" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 6px 18px rgba(0,0,0,0.14)", border: "1px solid #D4DCE6" }}>
-                <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
+                <img src="/depaid-logo.svg" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
               </div>
-              <h1 className="text-3xl font-black tracking-tight" style={{ color: "#003876" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></h1>
+              <h1 data-testid="login-heading" className="text-3xl font-black tracking-tight" style={{ color: "#003876" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></h1>
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="skeu-led-green" style={{ width: 6, height: 6 }} />
                 <span className="skeu-label" style={{ fontSize: "0.6rem", letterSpacing: "0.18em" }}>SUPPORT • FOCUS • EMPOWER</span>
@@ -101,14 +99,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Dev Login */}
-            <button
-              onClick={handleDevLogin}
-              className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-sm transition-all"
-            >
-              <Code size={16} />
-              Developer Bypass for Testing
-            </button>
+
 
             {/* Google OAuth Button */}
             <button
@@ -142,6 +133,7 @@ export default function LoginPage() {
                 <label htmlFor="email" className="skeu-label block">Email Address</label>
                 <input
                   id="email"
+                  data-testid="login-email"
                   type="email"
                   placeholder="juan.delacruz@deped.gov.ph"
                   value={email}
@@ -154,11 +146,19 @@ export default function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label htmlFor="password" className="skeu-label">Password</label>
-                  <a href="#" className="text-[10px] font-bold" style={{ color: "#003876" }}>Forgot password?</a>
+                  <button type="button" onClick={async () => {
+                    if (!email) { toast.error("Please enter your email first."); return }
+                    const supabase = createClient()
+                    if (!supabase) { toast.error("Auth service unavailable."); return }
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login` })
+                    if (error) toast.error(error.message)
+                    else toast.success("Password reset email sent! Check your inbox.")
+                  }} className="text-[10px] font-bold" style={{ color: "#003876" }}>Forgot password?</button>
                 </div>
                 <div className="relative">
                   <input
                     id="password"
+                    data-testid="login-password"
                     type={showPass ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
@@ -174,6 +174,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
+                data-testid="login-submit"
                 disabled={loading}
                 className="skeu-btn w-full h-11 rounded-xl text-sm flex items-center justify-center gap-2"
               >

@@ -1,0 +1,821 @@
+[
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 747",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "h-10 (40px height < 44px) for input/button near line 80",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "h-9 (36px height < 44px) for input/button near line 132",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "h-8 (32px height < 44px) for input/button near line 350",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 346",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 361",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 376",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 387",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "h-9 (36px height < 44px) for input/button near line 155",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "h-8 (32px height < 44px) for input/button near line 309",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 346",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 137",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "text-[11px] (11px < 14px) line 143",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 33",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 68",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 202",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 212",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 216",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 269",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 295",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 369",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 379",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 440",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 442",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 446",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[9px] (9px < 14px) line 560",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 571",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 580",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 589",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 598",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 637",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 638",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 639",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 640",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 651",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 660",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 754",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 789",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 797",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 826",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 840",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 850",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 853",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 860",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 880",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 894",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 904",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 907",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Dashboard",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 914",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 21",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 27",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 45",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 128",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 346",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 429",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 456",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 459",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 460",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 482",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 487",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 501",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 510",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 523",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 545",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 548",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 553",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 559",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 564",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 567",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 574",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 579",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 586",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 590",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "h-6 (24px height < 44px) for input/button near line 27",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "ECR",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "h-7 (28px height < 44px) for input/button near line 523",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 302",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Settings",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 475",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 86",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 112",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 117",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 250",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 261",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 453",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 466",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 503",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[8px] (8px < 14px) line 506",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[9px] (9px < 14px) line 507",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 512",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 519",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 523",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 581",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 584",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Attendance",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 593",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Sidebar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-[13px] (13px < 14px) line 131",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Sidebar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 141",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Sidebar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 168",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Sidebar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 169",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Sidebar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 181",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 160",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 188",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 210",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 219",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 220",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[9px] (9px < 14px) line 249",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 277",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 291",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 331",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[9px] (9px < 14px) line 349",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 362",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Topbar",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 367",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 99",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "text-[10px] (10px < 14px) line 157",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 186",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 133",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 139",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "text-xs (12px < 14px) line 301",
+    "fix": "Use sm:text-sm on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "h-7 (28px height < 44px) for input/button near line 133",
+    "fix": "Use h-11 or h-12 (44-48px) on mobile"
+  }
+]

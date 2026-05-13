@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input"
 import { useState, useEffect, useMemo } from "react"
 import { useTeacherStore } from "@/store/useStore"
 import { Book, Save, BookOpen, Clock, Download, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function SF3Page() {
   const [mounted, setMounted] = useState(false)
+  const [csrfToken, setCsrfToken] = useState('')
   const students = useTeacherStore(s => s.students)
   const books = useTeacherStore(s => s.books)
   const schoolInfo = useTeacherStore(s => s.schoolInfo)
@@ -20,9 +22,19 @@ export default function SF3Page() {
   const [dateField, setDateField] = useState(() => new Date().toISOString().split('T')[0])
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [focusedRemarksSubject, setFocusedRemarksSubject] = useState<string | null>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleIssueSubmit = () => {
     if (!selectedLrn || !selectedSubject) return
@@ -37,6 +49,11 @@ export default function SF3Page() {
     setSf3Record(selectedLrn, subject, { ...existing, remarks: value })
   }
 
+  const handleSetReturnCode = (subject: string, value: string) => {
+    const existing = books[selectedLrn]?.[subject] || {}
+    setSf3Record(selectedLrn, subject, { ...existing, returnCode: value })
+  }
+
   const selectedStudentName = useMemo(() => {
     return students.find(s => s.lrn === selectedLrn)?.name || ''
   }, [students, selectedLrn])
@@ -49,6 +66,7 @@ export default function SF3Page() {
       subject,
       dateIssued: rec.dateIssued || '',
       dateReturned: rec.dateReturned || '',
+      returnCode: rec.returnCode || '',
       remarks: rec.remarks || '',
     }))
   }, [books, selectedLrn])
@@ -61,10 +79,13 @@ export default function SF3Page() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      console.log('[SF3 EXPORT] books payload:', JSON.stringify(books, null, 2))
+      // Debug: console.log('[SF3 EXPORT] books payload:', JSON.stringify(books, null, 2))
       const res = await fetch('/api/export/sf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ form: 'sf3', students, books, schoolInfo })
       })
       if (!res.ok) throw new Error("SF3 Export failed")
@@ -78,7 +99,7 @@ export default function SF3Page() {
       a.remove()
       window.URL.revokeObjectURL(url)
     } catch (err: any) {
-      alert("Export Error: " + err.message)
+      toast.error("Export Error: " + err.message)
     } finally {
       setExporting(false)
     }
@@ -209,20 +230,23 @@ export default function SF3Page() {
                 </div>
               </div>
 
-              {/* Remarks Legend — shown above table when any remarks field is focused */}
-              {focusedRemarksSubject && (
-                <div className="mx-0 border-b border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-slate-700 leading-relaxed">
-                  <p className="font-bold text-amber-800 mb-1">📋 Remark / Action Taken Codes</p>
-                  <div className="flex flex-wrap gap-x-6 gap-y-0.5">
-                    <span><strong>FM</strong> = Force Majeure (Date Returned)</span>
-                    <span><strong>TDO</strong> = Transferred/Dropout (Date Returned)</span>
-                    <span><strong>NEG</strong> = Negligence (Date Returned)</span>
-                    <span><strong>LLTR</strong> = Secured Letter from Learner <em>(use when FM)</em></span>
-                    <span><strong>TLTR</strong> = Teacher Letter to School Head <em>(use when TDO)</em></span>
-                    <span><strong>PTL</strong> = Paid by the Learner <em>(use when NEG)</em></span>
+              {/* SF3 Field Legend — always visible */}
+              <div className="mx-0 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[10.5px] text-slate-600 leading-relaxed">
+                <div className="grid grid-cols-2 gap-x-4">
+                  <div>
+                    <p className="font-bold text-slate-700 mb-0.5">📅 Date Returned column codes (for unreturned books):</p>
+                    <span className="mr-3"><strong>FM</strong> = Force Majeure</span>
+                    <span className="mr-3"><strong>TDO</strong> = Transferred/Dropout</span>
+                    <span><strong>NEG</strong> = Negligence</span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-700 mb-0.5">📋 Remark/Action Taken column codes:</p>
+                    <span className="mr-3"><strong>LLTR</strong> = Secured Letter <em>(for FM)</em></span>
+                    <span className="mr-3"><strong>TLTR</strong> = Teacher Letter <em>(for TDO)</em></span>
+                    <span><strong>PTL</strong> = Paid by Learner <em>(for NEG)</em></span>
                   </div>
                 </div>
-              )}
+              </div>
               <div className="p-0">
                 {studentBooks.length === 0 ? (
                   <div className="p-12 text-center flex flex-col items-center">
@@ -235,10 +259,10 @@ export default function SF3Page() {
                     <TableHeader className="bg-slate-50/50 border-b-0">
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Subject / Book</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px]">Date Issued</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">Status</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[130px]">Remarks</TableHead>
-                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[110px] text-right">Action</TableHead>
+                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[90px]">Date Issued</TableHead>
+                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[115px]">Date Returned</TableHead>
+                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">Remark / Action</TableHead>
+                        <TableHead className="h-10 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[90px] text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -246,31 +270,50 @@ export default function SF3Page() {
                         <TableRow key={b.subject} className={`transition-colors ${b.dateReturned ? "bg-slate-50/50 opacity-60" : "bg-white"}`}>
                           <TableCell className="font-bold text-slate-800 py-3">{b.subject}</TableCell>
                           <TableCell className="text-xs text-slate-600 font-medium py-3">{b.dateIssued}</TableCell>
-                          <TableCell className="py-3">
+
+                          {/* Date Returned column: shows actual date if returned, else FM/TDO/NEG select */}
+                          <TableCell className="py-2">
                             {b.dateReturned ? (
                               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-1 rounded border border-emerald-200 whitespace-nowrap">
-                                Returned {b.dateReturned}
+                                ✓ {b.dateReturned}
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-1 rounded border border-amber-200 flex items-center gap-1 w-fit whitespace-nowrap">
-                                <Clock size={10} /> Borrowed
-                              </span>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-1 rounded border border-amber-200 flex items-center gap-1 w-fit whitespace-nowrap">
+                                  <Clock size={10} /> Borrowed
+                                </span>
+                                <select
+                                  className="text-[10px] border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-red-300 text-slate-700 w-full"
+                                  value={b.returnCode}
+                                  onChange={e => handleSetReturnCode(b.subject, e.target.value)}
+                                >
+                                  <option value="">— code —</option>
+                                  <option value="FM">FM</option>
+                                  <option value="TDO">TDO</option>
+                                  <option value="NEG">NEG</option>
+                                </select>
+                              </div>
                             )}
                           </TableCell>
+
+                          {/* Remark/Action Taken column: LLTR / TLTR / PTL */}
                           <TableCell className="py-2">
-              {!b.dateReturned ? (
-                              <input
-                                className="w-full text-[11px] border border-slate-200 rounded px-2 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-300 placeholder:text-slate-300"
-                                placeholder="LLTR / TLTR / PTL…"
+                            {!b.dateReturned ? (
+                              <select
+                                className="w-full text-[10px] border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-300 text-slate-700"
                                 value={b.remarks}
-                                onFocus={() => setFocusedRemarksSubject(b.subject)}
-                                onBlur={() => setFocusedRemarksSubject(null)}
                                 onChange={e => handleSetRemarks(b.subject, e.target.value)}
-                              />
+                              >
+                                <option value="">— action —</option>
+                                <option value="LLTR">LLTR</option>
+                                <option value="TLTR">TLTR</option>
+                                <option value="PTL">PTL</option>
+                              </select>
                             ) : (
                               <span className="text-[11px] text-slate-400">{b.remarks || '—'}</span>
                             )}
                           </TableCell>
+
                           <TableCell className="text-right py-3">
                             {!b.dateReturned && (
                               <button

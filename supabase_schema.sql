@@ -1,3 +1,4 @@
+-- SECURITY NOTE: Run this migration before production deployment.
 -- Supabase Database Schema for Teacher System
 
 -- Enable UUID extension (usually enabled by default in Supabase)
@@ -60,6 +61,7 @@ CREATE TABLE students (
     middle_name TEXT,
     sex TEXT NOT NULL CHECK (sex IN ('MALE', 'FEMALE')),
     birthdate DATE,
+    user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -69,6 +71,7 @@ CREATE TABLE enrollments (
     student_lrn TEXT REFERENCES students(lrn) ON DELETE CASCADE,
     section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'ENROLLED' CHECK (status IN ('ENROLLED', 'DROPPED', 'TRANSFERRED_OUT', 'PROMOTED', 'RETAINED')),
+    user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     UNIQUE(student_lrn, section_id)
 );
@@ -79,6 +82,7 @@ CREATE TABLE attendance (
     enrollment_id UUID REFERENCES enrollments(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('PRESENT', 'ABSENT', 'LATE')),
+    user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     UNIQUE(enrollment_id, date)
 );
@@ -97,6 +101,7 @@ CREATE TABLE grades (
     qa_total NUMERIC DEFAULT 0,
     initial_grade NUMERIC, -- Auto-computed before transmution
     quarterly_grade NUMERIC, -- Transmuted grade (DepEd scale)
+    user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     UNIQUE(enrollment_id, section_subject_id, quarter)
 );
@@ -112,20 +117,40 @@ ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users to view data (Simplifying for v1 prototype)
+-- Read policies: reference tables remain broad; user-data tables restricted to owner
 CREATE POLICY "Enable read access for authenticated users" ON profiles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Enable read access for authenticated users" ON school_years FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Enable read access for authenticated users" ON sections FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Enable read access for authenticated users" ON subjects FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Enable read access for authenticated users" ON section_subjects FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Enable read access for authenticated users" ON students FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Enable read access for authenticated users" ON enrollments FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Enable read access for authenticated users" ON attendance FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Enable read access for authenticated users" ON grades FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Users can read own students" ON students FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can read own enrollments" ON enrollments FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can read own attendance" ON attendance FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can read own grades" ON grades FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
--- Allow authenticated users to insert/update based on their role (simplified here)
-CREATE POLICY "Enable ALL for authenticated users" ON profiles FOR ALL TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Enable ALL for authenticated users" ON students FOR ALL TO authenticated USING (true);
-CREATE POLICY "Enable ALL for authenticated users" ON enrollments FOR ALL TO authenticated USING (true);
-CREATE POLICY "Enable ALL for authenticated users" ON attendance FOR ALL TO authenticated USING (true);
-CREATE POLICY "Enable ALL for authenticated users" ON grades FOR ALL TO authenticated USING (true);
+-- Write policies: users can only modify their own records
+CREATE POLICY "Enable ALL for authenticated users on profiles" ON profiles FOR ALL TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Enable ALL for authenticated users on students" ON students FOR ALL TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Enable ALL for authenticated users on enrollments" ON enrollments FOR ALL TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Enable ALL for authenticated users on attendance" ON attendance FOR ALL TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Enable ALL for authenticated users on grades" ON grades FOR ALL TO authenticated USING (auth.uid() = user_id);
+
+-- Table: section_students (Cross-teacher student roster sharing)
+-- Allows subject teachers to access student lists from section advisers
+CREATE TABLE section_students (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    school_id TEXT NOT NULL,
+    section_name TEXT NOT NULL,
+    grade_level TEXT NOT NULL,
+    student_lrn TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    sex TEXT NOT NULL CHECK (sex IN ('M', 'F')),
+    status TEXT DEFAULT 'Enrolled',
+    user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(school_id, section_name, student_lrn)
+);
+
+ALTER TABLE section_students ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable read access for authenticated users in same school" ON section_students FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Enable write for own section_students" ON section_students FOR ALL TO authenticated USING (auth.uid() = user_id);

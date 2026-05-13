@@ -2,13 +2,19 @@
 
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
-import { EnrollStudentModal } from "@/components/enrollment/enroll-student-modal"
 import { StudentProfileModal } from "@/components/student-profile-modal"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, UserCheck, Calculator, FileText, TrendingUp, PieChart as PieChartIcon, Cloud, AlertTriangle, Trash2, Sparkles, Loader2, CheckCircle2 } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Label as RechartsLabel } from 'recharts'
+import { AlertTriangle, Trash2, Users, UserCheck, Calculator, FileText } from "lucide-react"
+import { toast } from 'sonner'
 
-// ─── Confirm Delete Modal ──────────────────────────────────────────────────────
+import { WelcomeBanner } from "./components/WelcomeBanner"
+import { QuickActions } from "./components/QuickActions"
+import { StatCards } from "./components/StatCards"
+import { ScheduleWidget } from "./components/ScheduleWidget"
+import { ChartsSection } from "./components/ChartsSection"
+import { AISuggestions } from "./components/AISuggestions"
+import { SARDOPanel } from "./components/SARDOPanel"
+import { Masterlist } from "./components/Masterlist"
+
 function ConfirmDeleteStudentModal({
   name, onConfirm, onCancel
 }: {
@@ -81,6 +87,7 @@ function ConfirmDeleteMultipleModal({
 
 export default function AdviserDashboard() {
   const [mounted, setMounted] = useState(false)
+  const [masterlistOpen, setMasterlistOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ lrn: string; name: string } | null>(null)
   const [selectedLrns, setSelectedLrns] = useState<string[]>([])
@@ -90,6 +97,8 @@ export default function AdviserDashboard() {
   const attendanceMap = useTeacherStore((state) => state.attendance)
   const pushToCloud = useTeacherStore((state) => state.pushToCloud)
   const removeStudent = useTeacherStore((state) => state.removeStudent)
+  const workload = useTeacherStore((state) => state.workload)
+  const schoolInfo = useTeacherStore((state) => state.schoolInfo)
 
   useEffect(() => { setMounted(true) }, [])
   
@@ -120,7 +129,6 @@ export default function AdviserDashboard() {
   })
 
   const sexData = [{ name: 'Male', value: maleCount }, { name: 'Female', value: femaleCount }]
-  const COLORS = ['#3b82f6', '#ec4899']
 
   const todayStr = new Date().toISOString().split('T')[0]
   const presentToday = masterList.filter(s => (attendanceMap[s.lrn] || []).some(r => r.date === todayStr && r.status === 'P')).length
@@ -140,7 +148,6 @@ export default function AdviserDashboard() {
     return { ...s, average: avg, absences };
   }).filter(s => (s.average > 0 && s.average < 75) || s.absences >= 2);
 
-  // Stat card config
   const statCards = [
     {
       label: "Total Students", value: totalStudents, sub: `${maleCount} Male • ${femaleCount} Female`,
@@ -162,8 +169,6 @@ export default function AdviserDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-
-      {/* Delete modal */}
       {deleteTarget && (
         <ConfirmDeleteStudentModal
           name={deleteTarget.name}
@@ -172,7 +177,6 @@ export default function AdviserDashboard() {
         />
       )}
 
-      {/* Delete multiple modal */}
       {deleteMultiplePrompt && (
         <ConfirmDeleteMultipleModal
           count={selectedLrns.length}
@@ -185,515 +189,26 @@ export default function AdviserDashboard() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#111A24" }}>Grade 8 — ARIES</h1>
-          <p className="mt-1 text-sm" style={{ color: "#8898AC" }}>Class Advisory Dashboard • S.Y. 2025-2026</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="skeu-btn-ghost inline-flex items-center h-9 px-4 rounded-lg text-sm gap-2 disabled:opacity-50 transition-all"
-          >
-            {syncing ? <Loader2 size={14} className="animate-spin" /> : synced ? <CheckCircle2 size={14} className="text-[#003876]" /> : <Cloud size={14} />} 
-            {syncing ? 'Syncing...' : synced ? 'Synced!' : 'Sync to Cloud'}
-          </button>
-          <EnrollStudentModal />
-        </div>
-      </div>
-
-      {/* Stat Cards — raised aluminum plates */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map(({ label, value, sub, icon: Icon, iconColor, accent }) => (
-          <div key={label} className="skeu-card p-5">
-            <div className="flex items-start justify-between mb-3">
-              <p className="skeu-label">{label}</p>
-              <div
-                className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{
-                  background: `linear-gradient(180deg, color-mix(in srgb, ${iconColor} 12%, white) 0%, color-mix(in srgb, ${iconColor} 8%, white) 100%)`,
-                  border: `1px solid color-mix(in srgb, ${iconColor} 25%, white)`,
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 4px rgba(0,0,0,0.06)"
-                }}
-              >
-                <Icon size={15} style={{ color: iconColor }} />
-              </div>
-            </div>
-            <div className="text-3xl font-black leading-none mb-1" style={{ color: accent }}>{value}</div>
-            <p className="text-xs mt-1" style={{ color: "#8898AC" }}>{sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid gap-5 md:grid-cols-3">
-        {/* Bar Chart */}
-        <div className="skeu-card p-0 overflow-hidden md:col-span-2">
-          <div
-            className="flex items-center justify-between px-5 py-4"
-            style={{
-              background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)",
-              borderBottom: "1px solid #DDE4EE"
-            }}
-          >
-            <div>
-              <p className="font-black text-sm flex items-center gap-2" style={{ color: "#111A24" }}>
-                <TrendingUp size={15} style={{ color: "#003876" }} /> Subject Performance (Q1)
-              </p>
-              <p className="skeu-label mt-0.5">Live class average per learning area</p>
-            </div>
-          </div>
-          <div className="px-4 py-4 h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2F8" />
-                <XAxis dataKey="subject" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8898AC', fontWeight: 700 }} dy={8} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#8898AC' }} domain={[0, 100]} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(28,165,96,0.05)' }}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #DDE4EE', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: '#FFFFFF' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#111A24', fontSize: 12 }}
-                />
-                <Bar dataKey="average" radius={[4, 4, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.average >= 90 ? '#003876' : entry.average >= 75 ? '#2080D0' : '#D08010'}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Donut Chart */}
-        <div className="skeu-card p-0 overflow-hidden">
-          <div
-            className="px-5 py-4"
-            style={{
-              background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)",
-              borderBottom: "1px solid #DDE4EE"
-            }}
-          >
-            <p className="font-black text-sm flex items-center gap-2" style={{ color: "#111A24" }}>
-              <PieChartIcon size={15} style={{ color: "#2060C0" }} /> Demographics
-            </p>
-            <p className="skeu-label mt-0.5">Sex ratio of enrolled learners</p>
-          </div>
-          <div className="h-[260px] flex items-center justify-center px-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={sexData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value" stroke="none">
-                  {sexData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                  <RechartsLabel value={totalStudents} position="center" className="text-3xl font-bold fill-slate-800" />
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #DDE4EE', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Suggestions */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, #FAFCFF 0%, #F5F8FD 100%)",
-          border: "1px solid #DDE4EE",
-          boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 12px rgba(0,0,0,0.07)"
-        }}
-      >
-        <div
-          className="flex items-center gap-3 px-5 py-4"
-          style={{
-            background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)",
-            borderBottom: "1px solid #DDE4EE"
-          }}
-        >
-          <div
-            className="h-8 w-8 rounded-lg flex items-center justify-center"
-            style={{
-              background: "linear-gradient(180deg, #EEE8FF, #E4D8FF)",
-              border: "1px solid #C8B8F0",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset"
-            }}
-          >
-            <Sparkles size={14} style={{ color: "#7040C0" }} />
-          </div>
-          <div>
-            <p className="font-black text-sm flex items-center gap-2" style={{ color: "#111A24" }}>
-              AI Suggestions
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "#EEE8FF", color: "#7040C0", border: "1px solid #C8B8F0" }}>Smart</span>
-            </p>
-            <p className="skeu-label mt-0.5">Data-driven recommendations for your class</p>
-          </div>
-        </div>
-        <div className="p-5 space-y-2.5">
-          {presentToday === 0 && (
-            <div className="flex items-start gap-3 rounded-lg px-4 py-3" style={{ background: "#FAFCFF", border: "1px solid #DDE4EE", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-              <span className="text-lg leading-tight">📋</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: "#111A24" }}>Record today's attendance</p>
-                <p className="text-xs mt-0.5" style={{ color: "#8898AC" }}>No attendance data for today. Go to SF2 Attendance to mark your class.</p>
-              </div>
-            </div>
-          )}
-          {subjectsWithCompleteData < 8 && (
-            <div className="flex items-start gap-3 rounded-lg px-4 py-3" style={{ background: "#FAFCFF", border: "1px solid #DDE4EE", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-              <span className="text-lg leading-tight">📊</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: "#111A24" }}>{8 - subjectsWithCompleteData} subjects still need complete grades</p>
-                <p className="text-xs mt-0.5" style={{ color: "#8898AC" }}>Follow up with subject teachers to transmit their E-Class Records before the deadline.</p>
-              </div>
-            </div>
-          )}
-          {interventionList.length > 0 && (
-            <div className="flex items-start gap-3 rounded-lg px-4 py-3" style={{ background: "#FFF8EC", border: "1px solid #E8D080", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-              <span className="text-lg leading-tight">⚠️</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: "#3A2A00" }}>{interventionList.length} student{interventionList.length > 1 ? 's' : ''} need{interventionList.length === 1 ? 's' : ''} intervention</p>
-                <p className="text-xs mt-0.5" style={{ color: "#8A6828" }}>Schedule a SARDO meeting with parents of students below 75 avg or with excessive absences.</p>
-              </div>
-            </div>
-          )}
-          {subjectsWithCompleteData === 8 && interventionList.length === 0 && (
-            <div className="flex items-start gap-3 rounded-lg px-4 py-3" style={{ background: "#F0FBF5", border: "1px solid #A8D8BA", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
-              <span className="text-lg leading-tight">✨</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: "#1A3A28" }}>All clear! Your class is on track.</p>
-                <p className="text-xs mt-0.5" style={{ color: "#5A8A6A" }}>All subjects submitted and no students flagged for intervention. Great job, Teacher!</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* SARDO Intervention Panel */}
+      <WelcomeBanner schoolInfo={schoolInfo} handleSync={handleSync} syncing={syncing} synced={synced} />
+      <QuickActions />
+      <StatCards statCards={statCards} />
+      <ScheduleWidget workload={workload} />
+      <ChartsSection chartData={chartData} sexData={sexData} totalStudents={totalStudents} />
+      <AISuggestions presentToday={presentToday} subjectsWithCompleteData={subjectsWithCompleteData} interventionList={interventionList} />
       {interventionList.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{
-              background: "linear-gradient(160deg, #FFFBF5 0%, #FFF7EE 100%)",
-              border: "1px solid #E8C878",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 12px rgba(208,128,16,0.1)"
-            }}
-          >
-            <div
-              className="flex items-center gap-3 px-5 py-4"
-              style={{ borderBottom: "1px solid #E8D080", background: "linear-gradient(180deg, #FFFEF8 0%, #FFF9EC 100%)" }}
-            >
-              <div
-                className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "linear-gradient(180deg, #FFE8C0, #FFD890)", border: "1px solid #E8C060", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}
-              >
-                <AlertTriangle size={14} style={{ color: "#C07800" }} />
-              </div>
-              <div>
-                <p className="font-black text-sm" style={{ color: "#3A2800" }}>SARDO Intervention Required</p>
-                <p className="skeu-label mt-0.5" style={{ color: "#8A6828" }}>
-                  Students below 75 avg or with ≥2 absences flagged automatically
-                </p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow style={{ background: "rgba(232,192,96,0.1)", borderBottom: "1px solid #E8D080" }}>
-                    <TableHead className="font-bold text-xs" style={{ color: "#7A5018" }}>Learner Name</TableHead>
-                    <TableHead className="font-bold text-xs text-center" style={{ color: "#7A5018" }}>Gen. Average</TableHead>
-                    <TableHead className="font-bold text-xs text-center" style={{ color: "#7A5018" }}>Absences</TableHead>
-                    <TableHead className="text-right font-bold text-xs" style={{ color: "#7A5018" }}>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {interventionList.map(student => (
-                    <TableRow key={student.lrn} className="transition-colors" style={{ borderBottom: "1px solid rgba(232,200,120,0.3)" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,192,96,0.08)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "")}
-                    >
-                      <TableCell className="font-medium text-sm" style={{ color: "#2A1A00" }}>{student.name}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold"
-                          style={student.average < 75 && student.average > 0
-                            ? { background: "#FFF0F0", color: "#C03030", border: "1px solid #E8AAAA" }
-                            : { background: "#EEF2F8", color: "#5A6A7E", border: "1px solid #D4DCE6" }
-                          }>
-                          {student.average > 0 ? student.average.toFixed(2) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold"
-                          style={student.absences >= 2
-                            ? { background: "#FFF8EC", color: "#C07800", border: "1px solid #E8C878" }
-                            : { background: "#EEF2F8", color: "#5A6A7E", border: "1px solid #D4DCE6" }
-                          }>
-                          {student.absences} absent
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-4">
-                          <button
-                            onClick={() => {
-                              const today = new Date()
-                              const dateStr = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                              const reason = student.average > 0 && student.average < 75
-                                ? `academic standing (General Average: <strong>${student.average.toFixed(2)}</strong>, below the passing mark of 75)`
-                                : `excessive absences (<strong>${student.absences} absence${student.absences !== 1 ? 's' : ''}</strong> recorded this quarter)`
-                              const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8"/>
-  <title>SARDO Intervention Letter – ${student.name}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
-    body { font-family: "Times New Roman", Times, serif; margin: 0; padding: 40px 60px; font-size: 13pt; color: #000; }
-    .header { text-align: center; margin-bottom: 8px; }
-    .header img { height: 60px; }
-    .header h2 { font-size: 13pt; margin: 2px 0; text-transform: uppercase; }
-    .header p { font-size: 11pt; margin: 1px 0; }
-    hr { border: none; border-top: 2px solid #000; margin: 10px 0 4px; }
-    hr.thin { border-top: 1px solid #000; margin: 2px 0 14px; }
-    .date { text-align: right; margin-bottom: 20px; }
-    .body { text-align: justify; line-height: 1.8; }
-    .body p { margin: 0 0 14px; }
-    .indent { text-indent: 40px; }
-    .sig { margin-top: 40px; }
-    .sig-name { font-weight: bold; text-transform: uppercase; border-top: 1px solid #000; display: inline-block; min-width: 220px; padding-top: 4px; margin-top: 50px; }
-    @media print { body { padding: 30px 50px; } button { display: none; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h2>Republic of the Philippines</h2>
-    <h2>Department of Education</h2>
-    <p>Region XI – Davao Region</p>
-    <p>Division of Panabo City</p>
-    <p><strong>QUEZON NATIONAL HIGH SCHOOL</strong></p>
-    <p>Quezon, Panabo City</p>
-  </div>
-  <hr/><hr class="thin"/>
-
-  <div class="date">${dateStr}</div>
-
-  <div class="body">
-    <p>Dear Parent/Guardian of <strong>${student.name}</strong>,</p>
-
-    <p class="indent">Greetings of peace and goodwill!</p>
-
-    <p class="indent">This letter is to formally inform you that your child, <strong>${student.name}</strong>, a student of Grade 8 – ARIES at Quezon National High School for School Year 2025–2026, has been identified as a <strong>Student At Risk of Dropping Out (SARDO)</strong> due to ${reason}.</p>
-
-    <p class="indent">In line with DepEd Order No. 40, s. 2012 (DepEd Child Protection Policy) and DO No. 21, s. 2019 (Policy Guidelines on the K–12 Basic Education Program), we are reaching out to coordinate appropriate intervention strategies to support your child's academic progress and continued enrollment.</p>
-
-    <p class="indent">We strongly encourage you to schedule a meeting with the class adviser at your earliest convenience to discuss the matter and plan for necessary academic or behavioral interventions. Your cooperation and active involvement in your child's education is greatly appreciated.</p>
-
-    <p class="indent">Should you have any questions or concerns, please feel free to contact the school at the number provided above. We look forward to working with you for the betterment of your child's future.</p>
-
-    <p class="indent">Thank you very much.</p>
-  </div>
-
-  <div class="sig">
-    <p>Respectfully yours,</p>
-    <div class="sig-name">TEACHER'S NAME</div>
-    <p style="margin:2px 0 0">Class Adviser, Grade 8 – ARIES</p>
-
-    <br/><br/>
-    <p>Noted by:</p>
-    <div class="sig-name">MYRNA EVANGELISTA PURIFICACION</div>
-    <p style="margin:2px 0 0">School Head / Principal</p>
-  </div>
-
-  <script>window.onload = () => window.print();</script>
-</body>
-</html>`
-                              const win = window.open('', '_blank')
-                              if (win) { win.document.write(html); win.document.close() }
-                              else alert('Please allow pop-ups for this site to generate the letter.')
-                            }}
-                            className="text-[11px] uppercase tracking-wider font-black px-3 py-1.5 rounded-md shadow-sm transition-all hover:-translate-y-0.5"
-                            style={{ background: "linear-gradient(180deg, #E3001B 0%, #C00017 100%)", color: "white", border: "1px solid #A00015" }}
-                          >
-                            Generate Letter
-                          </button>
-                          <button
-                            onClick={() => setSelectedStudent(student)}
-                            className="text-xs font-bold underline underline-offset-2"
-                            style={{ color: "#D08010" }}
-                          >
-                            Review Profile
-                          </button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </div>
+        <SARDOPanel interventionList={interventionList} onReviewProfile={setSelectedStudent} />
       )}
-
-      {/* Masterlist — SF1 */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
-          border: "1px solid #DDE4EE",
-          boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 4px 14px rgba(0,0,0,0.08)"
-        }}
-      >
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}
-        >
-          <div>
-            <p className="font-black text-sm" style={{ color: "#111A24" }}>Class Masterlist (SF1)</p>
-            <p className="skeu-label mt-0.5">Officially enrolled students for this section</p>
-          </div>
-          {selectedLrns.length > 0 && (
-             <button
-               onClick={() => setDeleteMultiplePrompt(true)}
-               className="h-8 px-3 rounded-lg text-xs font-bold transition-all text-white flex items-center gap-1.5"
-               style={{ background: "linear-gradient(180deg, #E30A24, #B5081C)", border: "1px solid #8A0615" }}
-             >
-               <Trash2 size={13} /> Delete Selected ({selectedLrns.length})
-             </button>
-          )}
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow style={{ background: "#F4F7FC", borderBottom: "1px solid #DDE4EE" }}>
-                <TableHead className="w-[40px] pr-0">
-                   <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
-                     onChange={(e) => setSelectedLrns(e.target.checked ? masterList.map(s => s.lrn) : [])}
-                     checked={selectedLrns.length === masterList.length && masterList.length > 0} 
-                   />
-                </TableHead>
-                <TableHead className="skeu-label w-[150px]">LRN</TableHead>
-                <TableHead className="skeu-label">Legal Name</TableHead>
-                <TableHead className="skeu-label">Sex</TableHead>
-                <TableHead className="skeu-label">Status</TableHead>
-                <TableHead className="skeu-label text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Male section */}
-              <TableRow style={{ background: "#EEF5FF", borderBottom: "1px solid #DDE4EE" }}>
-                <TableCell colSpan={6} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#1040A0" }}>MALE</TableCell>
-              </TableRow>
-              {masterList.filter(s => s.sex === 'M').map(student => (
-                <TableRow key={student.lrn} className="group transition-colors"
-                  style={{ borderBottom: "1px solid #EEF2F8" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.03)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "")}
-                >
-                  <TableCell className="pr-0">
-                     <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
-                       checked={selectedLrns.includes(student.lrn)}
-                       onChange={(e) => setSelectedLrns(prev => e.target.checked ? [...prev, student.lrn] : prev.filter(lrn => lrn !== student.lrn))}
-                     />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs" style={{ color: "#8898AC" }}>{student.lrn}</TableCell>
-                  <TableCell>
-                    <button onClick={() => setSelectedStudent(student)} className="font-semibold text-sm text-left transition-colors" style={{ color: "#111A24" }}
-                      onMouseEnter={e => (e.currentTarget.style.color = "#003876")}
-                      onMouseLeave={e => (e.currentTarget.style.color = "#111A24")}
-                    >
-                      {student.name}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#EEF5FF", color: "#1040A0", border: "1px solid #B8C8F0" }}>Male</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#003876" }} />
-                      {student.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => setSelectedStudent(student)} className="text-xs font-bold transition-colors" style={{ color: "#8898AC" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "#003876")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "#8898AC")}
-                      >View</button>
-                      <button
-                        onClick={() => setDeleteTarget({ lrn: student.lrn, name: student.name })}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-                        style={{ color: "#B8C4D4" }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#C03030"; (e.currentTarget as HTMLElement).style.background = "#FFF0F0" }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#B8C4D4"; (e.currentTarget as HTMLElement).style.background = "" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-
-              {/* Female section */}
-              <TableRow style={{ background: "#FFF0F8", borderBottom: "1px solid #DDE4EE" }}>
-                <TableCell colSpan={6} className="font-black text-xs tracking-wider py-1.5" style={{ color: "#A03080" }}>FEMALE</TableCell>
-              </TableRow>
-              {masterList.filter(s => s.sex === 'F').map(student => (
-                <TableRow key={student.lrn} className="group transition-colors"
-                  style={{ borderBottom: "1px solid #EEF2F8" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.03)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "")}
-                >
-                  <TableCell className="pr-0">
-                     <input type="checkbox" className="accent-[#003876] w-3.5 h-3.5"
-                       checked={selectedLrns.includes(student.lrn)}
-                       onChange={(e) => setSelectedLrns(prev => e.target.checked ? [...prev, student.lrn] : prev.filter(lrn => lrn !== student.lrn))}
-                     />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs" style={{ color: "#8898AC" }}>{student.lrn}</TableCell>
-                  <TableCell>
-                    <button onClick={() => setSelectedStudent(student)} className="font-semibold text-sm text-left transition-colors" style={{ color: "#111A24" }}
-                      onMouseEnter={e => (e.currentTarget.style.color = "#003876")}
-                      onMouseLeave={e => (e.currentTarget.style.color = "#111A24")}
-                    >
-                      {student.name}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFF0F8", color: "#A03080", border: "1px solid #F0B8D8" }}>Female</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#E8F7EE", color: "#003876", border: "1px solid #A8D8BA" }}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#003876" }} />
-                      {student.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => setSelectedStudent(student)} className="text-xs font-bold transition-colors" style={{ color: "#8898AC" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "#003876")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "#8898AC")}
-                      >View</button>
-                      <button
-                        onClick={() => setDeleteTarget({ lrn: student.lrn, name: student.name })}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-                        style={{ color: "#B8C4D4" }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#C03030"; (e.currentTarget as HTMLElement).style.background = "#FFF0F0" }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#B8C4D4"; (e.currentTarget as HTMLElement).style.background = "" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <Masterlist
+        masterList={masterList}
+        totalStudents={totalStudents}
+        selectedLrns={selectedLrns}
+        setSelectedLrns={setSelectedLrns}
+        setDeleteTarget={setDeleteTarget}
+        setSelectedStudent={setSelectedStudent}
+        masterlistOpen={masterlistOpen}
+        setMasterlistOpen={setMasterlistOpen}
+        onRequestDeleteMultiple={() => setDeleteMultiplePrompt(true)}
+      />
 
       <StudentProfileModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
     </div>

@@ -1,22 +1,74 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs/promises';
+import { generateToken, validateToken } from '@/lib/csrf';
+import { checkRateLimit, cleanupRateLimits } from '@/lib/rateLimit';
 
-export async function POST(req: Request) {
+// ─── GET handler (CSRF token provisioning) ──────────────────────────────────────
+export async function GET() {
+  const token = generateToken()
+  const resp = NextResponse.json({ csrfToken: token })
+  resp.cookies.set('csrf-token', token, {
+    path: '/',
+    sameSite: 'strict',
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 3600,
+  })
+  return resp
+}
+
+export async function POST(req: NextRequest) {
   try {
+    // ── Rate Limiting ───────────────────────────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || '127.0.0.1'
+    cleanupRateLimits()
+    if (!checkRateLimit(ip, 'export/ecr')) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
+    // ── CSRF Validation ─────────────────────────────────────────────────────
+    const csrfHeader = req.headers.get('x-csrf-token')
+    const csrfCookie = req.cookies.get('csrf-token')?.value
+    if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie || !validateToken(csrfHeader)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
+
     const { subject, students, schoolInfo } = await req.json();
 
-    // In a full production mapping, we would dynamically select the template based on subject/grade.
-    // For this prototype, we use the FIL 8 ARIES ECR template as the unified format.
-    const templateName = 'FIL 8 ARIES ECR.xlsx';
-    const templatePath = path.join(process.cwd(), 'public', 'templates', templateName);
+    // Dynamic template selection: try subject+grade+section, fall back to hardcoded default
+    const grade = schoolInfo?.gradeLevel || '8';
+    const section = schoolInfo?.section || 'ARIES';
+    const candidateName = `${subject} ${grade} ${section} ECR.xlsx`;
+    const candidatePath = path.join(process.cwd(), 'public', 'templates', candidateName);
+    const fallbackName = 'FIL 8 ARIES ECR.xlsx';
+    const fallbackPath = path.join(process.cwd(), 'public', 'templates', fallbackName);
 
-    // Verify template existence
+    let templateName: string;
+    let templatePath: string;
+
     try {
-        await fs.access(templatePath);
+        await fs.access(candidatePath);
+        templateName = candidateName;
+        templatePath = candidatePath;
     } catch {
-       return NextResponse.json({ error: `Template ${templateName} not found in public/templates/` }, { status: 404 });
+        try {
+            await fs.access(fallbackPath);
+            templateName = fallbackName;
+            templatePath = fallbackPath;
+        } catch {
+            return NextResponse.json({ error: `Template not found: tried "${candidateName}" and "${fallbackName}"` }, { status: 404 });
+        }
     }
 
     const workbook = new ExcelJS.Workbook();

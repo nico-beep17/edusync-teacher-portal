@@ -4,6 +4,7 @@ import { Scan, CheckCircle2, QrCode } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { useTeacherStore } from "@/store/useStore"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 export function QRScannerModal({ subject }: { subject?: string }) {
   const [open, setOpen] = useState(false)
@@ -45,7 +46,7 @@ export function QRScannerModal({ subject }: { subject?: string }) {
        // Clear success message after 3 seconds
        setTimeout(() => setLastScanned(null), 3000)
     } else {
-       alert("Invalid or unrecognized student QR Code.")
+       toast.error("Invalid or unrecognized student QR Code.")
        setScanValue("")
     }
   }

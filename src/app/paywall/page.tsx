@@ -7,6 +7,8 @@ import {
   FileText, BarChart2, Brain, Bell, Download,
   ShieldCheck, Wifi, Sparkles, Gift, Tag, X, Users, Star, Info
 } from "lucide-react"
+import { toast } from "sonner"
+import { CreditCard, Calendar, Lock as LockIcon } from "lucide-react"
 
 const FREE_FEATURES = [
   { icon: FileText, text: "Masterlist (SF1) — up to 60 students" },
@@ -54,6 +56,14 @@ export default function PaywallPage() {
   const displayPrice = referralApplied ? discountedPrice : basePrice
   const savings = referralApplied ? PRICING.referralDiscount : 0
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+
+  // Card form state
+  const [cardNumber, setCardNumber] = useState("")
+  const [expiry, setExpiry] = useState("")
+  const [cvc, setCvc] = useState("")
+  const [cardName, setCardName] = useState("")
+
   const handleApplyReferral = () => {
     if (!referralCode.trim()) { setReferralError("Please enter a referral code."); return }
     if (!VALID_REFERRAL_PATTERN.test(referralCode)) {
@@ -70,18 +80,119 @@ export default function PaywallPage() {
     setReferralError("")
   }
 
-  const handleUpgrade = () => {
+  const handleUpgradeClick = () => {
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Step 1: Create Payment Intent via server API route
+      const intentRes = await fetch("/api/payment/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: displayPrice,
+          description: isDepEd ? "DepEd Teacher Monthly" : "Pro Monthly",
+        }),
+      })
+
+      if (!intentRes.ok) {
+        const err = await intentRes.json()
+        throw new Error(err.error || "Failed to initiate payment")
+      }
+
+      const { id: paymentIntentId } = await intentRes.json()
+
+      // Step 2: Tokenize card via PayMongo public key (client-side)
+      const publicKey = process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY
+      if (!publicKey) throw new Error("Payment public key not configured")
+
+      const [expMonthStr, expYearStr] = expiry.split("/")
+      const expMonth = parseInt(expMonthStr, 10)
+      const expYear = 2000 + parseInt(expYearStr, 10)
+
+      const pmRes = await fetch("https://api.paymongo.com/v1/payment_methods", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${btoa(`${publicKey}:`)}`,
+        },
+        body: JSON.stringify({
+          data: {
+            attributes: {
+              type: "card",
+              details: {
+                card_number: cardNumber.replace(/\s/g, ""),
+                exp_month: expMonth,
+                exp_year: expYear,
+                cvc,
+              },
+              billing: { name: cardName || "Cardholder" },
+            },
+          },
+        }),
+      })
+
+      if (!pmRes.ok) {
+        const err = await pmRes.json()
+        const detail = err.errors?.[0]?.detail || "Card was declined"
+        throw new Error(detail)
+      }
+
+      const pmData = await pmRes.json()
+      const paymentMethodId = pmData.data.id
+
+      // Step 3: Attach payment method to intent via server API route
+      const attachRes = await fetch("/api/payment/attach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentIntentId, paymentMethodId }),
+      })
+
+      if (!attachRes.ok) {
+        const err = await attachRes.json()
+        throw new Error(err.error || "Payment processing failed")
+      }
+
+      const attachData = await attachRes.json()
+
+      if (attachData.status === "succeeded") {
+        const planLabel = isDepEd ? "DepEd Teacher Monthly" : "Pro Monthly"
+        const referralNote = referralApplied
+          ? `\nReferral applied: -₱${savings}/mo for first 6 months from subscription start`
+          : ""
+        toast.success(
+          `Payment successful!\nPlan: ${planLabel}\nPrice: ₱${displayPrice}/mo${referralNote}\n\nEnjoy full access! 🎉`
+        )
+        router.push("/dashboard")
+      } else if (attachData.status === "awaiting_next_action") {
+        toast.info("Your card requires additional authentication. Please follow the prompts to complete payment.")
+      } else {
+        throw new Error(`Payment status: ${attachData.status}. Please try again or use a different card.`)
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Payment failed. Please check your card details and try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /** Dev-only: skip real payment, simulate success after 1.5s */
+  const handleDevBypass = () => {
     setLoading(true)
     setTimeout(() => {
       const planLabel = isDepEd ? "DepEd Teacher Monthly" : "Pro Monthly"
       const referralNote = referralApplied
         ? `\nReferral applied: -₱${savings}/mo for first 6 months from subscription start`
         : ""
-      alert(
-        `Payment gateway coming soon!\nPlan: ${planLabel}\nPrice: ₱${displayPrice}/mo${referralNote}\n\nEnjoy full access! 🎉`
+      toast.success(
+        `[DEV] Payment simulated!\nPlan: ${planLabel}\nPrice: ₱${displayPrice}/mo${referralNote}\n\nEnjoy full access! 🎉`
       )
       router.push("/dashboard")
-    }, 1000)
+    }, 1500)
   }
 
   return (
@@ -99,7 +210,7 @@ export default function PaywallPage() {
         {/* Topbar */}
         <div className="flex items-center gap-3 mb-10">
           <div className="h-9 w-9 rounded-xl overflow-hidden" style={{ boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 3px 8px rgba(0,0,0,0.1)", border: "1px solid #D4DCE6" }}>
-            <img src="/depaid-logo.png" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
+            <img src="/depaid-logo.svg" alt="DepAid" className="h-full w-full object-contain scale-[1.3] drop-shadow-sm transition-transform duration-300" />
           </div>
           <span className="font-black text-lg" style={{ color: "#003876" }}>Dep<span style={{ color: "#B5081C" }}>Aid</span></span>
           <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md skeu-badge-green text-[10px] font-bold uppercase tracking-widest">
@@ -338,11 +449,11 @@ export default function PaywallPage() {
           )}
 
           {/* CTA */}
-          <button
-            onClick={handleUpgrade}
-            disabled={loading}
-            className="skeu-btn w-full h-13 rounded-xl text-sm flex items-center justify-center gap-2 py-3.5"
-          >
+              <button
+                onClick={handleUpgradeClick}
+                disabled={loading}
+                className="skeu-btn w-full h-12 rounded-xl text-sm mt-5 shadow-lg relative overflow-hidden group"
+              >
             {loading
               ? <><span className="animate-spin inline-block">⏳</span> Processing...</>
               : <>
@@ -479,6 +590,91 @@ export default function PaywallPage() {
           </p>
         </div>
       </div>
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-black text-lg text-slate-800 flex items-center gap-2">
+                <CreditCard size={20} className="text-[#003876]" />
+                Secure Checkout
+              </h3>
+              <button disabled={loading} onClick={() => setShowPaymentModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handlePaymentSubmit} className="p-6">
+              <div className="mb-6 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-bold text-slate-700">{isDepEd ? "DepEd Teacher Monthly" : "Pro Monthly"}</span>
+                  <span className="font-black text-[#003876]">₱{displayPrice}</span>
+                </div>
+                {referralApplied && (
+                  <p className="text-xs text-emerald-600 font-medium">Referral discount applied: -₱{savings}</p>
+                )}
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Card Information</label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                     <input required type="text" placeholder="0000 0000 0000 0000" value={cardNumber} onChange={e => setCardNumber(e.target.value)} className="w-full h-10 pl-10 pr-3 text-sm border border-slate-300 rounded-lg focus:border-[#003876] focus:ring-1 focus:ring-[#003876] outline-none transition-all" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Expiry Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                       <input required type="text" placeholder="MM/YY" value={expiry} onChange={e => setExpiry(e.target.value)} className="w-full h-10 pl-10 pr-3 text-sm border border-slate-300 rounded-lg focus:border-[#003876] focus:ring-1 focus:ring-[#003876] outline-none transition-all" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">CVC</label>
+                    <div className="relative">
+                      <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                       <input required type="password" placeholder="123" maxLength={4} value={cvc} onChange={e => setCvc(e.target.value)} className="w-full h-10 pl-10 pr-3 text-sm border border-slate-300 rounded-lg focus:border-[#003876] focus:ring-1 focus:ring-[#003876] outline-none transition-all" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Name on Card</label>
+                   <input required type="text" placeholder="Juan Dela Cruz" value={cardName} onChange={e => setCardName(e.target.value)} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:border-[#003876] focus:ring-1 focus:ring-[#003876] outline-none transition-all" />
+                </div>
+              </div>
+
+              <button disabled={loading} type="submit" className="w-full h-12 rounded-xl text-sm font-bold bg-[#003876] hover:bg-[#002B5A] text-white transition-colors flex items-center justify-center gap-2 shadow-md">
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2006/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing Payment...
+                  </>
+                ) : (
+                  <>
+                    <Lock size={16} />
+                    Pay ₱{displayPrice}
+                  </>
+                )}
+              </button>
+
+              {/* Dev bypass */}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleDevBypass}
+                className="w-full mt-2 h-9 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors border border-dashed border-slate-300"
+              >
+                [Dev] Simulate Payment
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -1,0 +1,184 @@
+[
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [SPAN] \"The Future of EdTech\" (152x16)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [SPAN] \"Cloud Synced\" (82x16)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "10px < 14px [P] \"Auto-Export\" (85x15)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Homepage",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [P] \"SF1, SF2, SF5\" (85x16)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Homepage",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "41x20px < 44x44 [A] \"Log in\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Homepage",
+    "type": "tap-target-small",
+    "severity": "high",
+    "detail": "118x36px < 44x44 [A] \"Get Started\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "9.6px < 14px [SPAN] \"SUPPORT • FOCUS • EMPOWER\" (191x14)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "11px < 14px [LABEL] \"Email Address\" (277x17)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "11px < 14px [LABEL] \"Password\" (74x17)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "10px < 14px [A] \"Forgot password?\" (88x15)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [P] \"New to DepAid? Create acc\" (184x16)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [A] \"Create account\" (90x15)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "9.6px < 14px [P] \"Offline-First PWA • DepEd\" (239x14)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Login",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "88x15px < 44x44 [A] \"Forgot password?\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Login",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "90x15px < 44x44 [A] \"Create account\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "9.6px < 14px [SPAN] \"New Account Registration\" (176x14)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [DIV] \"1\" (26x28)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "11px < 14px [SPAN] \"Personal Info\" (96x33)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "11px < 14px [LABEL] \"Full Name *\" (277x17)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "high",
+    "detail": "11px < 14px [SPAN] \"*\" (7x14)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [P] \"Already have an account? \" (277x16)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "medium",
+    "detail": "12px < 14px [A] \"Sign in here\" (69x15)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "text-too-small",
+    "severity": "critical",
+    "detail": "9.6px < 14px [P] \"DepEd-Compliant • Offline\" (343x14)",
+    "fix": "Increase to min 14px on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "tap-target-small",
+    "severity": "critical",
+    "detail": "69x15px < 44x44 [A] \"Sign in here\"",
+    "fix": "Increase to 44x44px min (add padding/min-height)"
+  },
+  {
+    "page": "Register",
+    "type": "input-obstructed",
+    "severity": "medium",
+    "detail": "Input width 133px on 375px viewport (password)",
+    "fix": "Use w-full or wider inputs on mobile"
+  },
+  {
+    "page": "Register",
+    "type": "input-obstructed",
+    "severity": "medium",
+    "detail": "Input width 133px on 375px viewport (password)",
+    "fix": "Use w-full or wider inputs on mobile"
+  }
+]

@@ -7,6 +7,7 @@ import { Printer, Download } from "lucide-react"
 import { useTeacherStore } from "@/store/useStore"
 import { useEffect, useState } from "react"
 import { exportToCSV } from "@/lib/export-utils"
+import { toast } from "sonner"
 
 const computeAverage = (grades: any[], requiredSubjects: string[]) => {
   if (grades.length === 0) return "0"
@@ -22,10 +23,22 @@ const computeAverage = (grades: any[], requiredSubjects: string[]) => {
 
 export default function SF5Page() {
   const [mounted, setMounted] = useState(false)
+  const [csrfToken, setCsrfToken] = useState('')
   const students = useTeacherStore(s => s.students)
   const gradesMap = useTeacherStore(s => s.grades)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
+  }, [])
   if (!mounted) return null
 
   const subjects = ['Filipino', 'English', 'Mathematics', 'Science', 'Ap', 'Epp/tle', 'Mapeh', 'Esp']
@@ -60,7 +73,10 @@ export default function SF5Page() {
           })
           const res = await fetch('/api/export/sf', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken || ''
+              },
               body: JSON.stringify({
                 form: 'sf5',
                 students: exportStudents,
@@ -81,7 +97,7 @@ export default function SF5Page() {
           a.remove();
           window.URL.revokeObjectURL(url);
       } catch (err: any) {
-          alert("Export Error: " + err.message);
+          toast.error("Export Error: " + err.message);
       }
   }
 
@@ -95,7 +111,10 @@ export default function SF5Page() {
           })
           const res = await fetch('/api/export/sf', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken || ''
+              },
               body: JSON.stringify({
                 form: 'sf6',
                 students: exportStudents,
@@ -116,7 +135,7 @@ export default function SF5Page() {
           a.remove();
           window.URL.revokeObjectURL(url);
       } catch (err: any) {
-          alert("Export Error: " + err.message);
+          toast.error("Export Error: " + err.message);
       }
   }
 

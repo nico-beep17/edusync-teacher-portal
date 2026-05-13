@@ -1,8 +1,12 @@
-import type { NextConfig } from "next";
+import withPWA from "@ducanh2912/next-pwa";
+import { withSentryConfig } from "@sentry/nextjs";
 
-const nextConfig: NextConfig = {
-  typescript: { ignoreBuildErrors: true },
-  turbopack: {},
-};
+const nextConfig = withSentryConfig(
+  withPWA({
+    dest: "public",
+  })({
+    turbopack: {},
+  })
+);
 
 export default nextConfig;

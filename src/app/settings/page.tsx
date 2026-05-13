@@ -1,10 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Plus, Trash2, Save, CheckCircle2, BookOpen,
   Upload, Download, Camera, FileSpreadsheet,
@@ -12,6 +8,10 @@ import {
 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTeacherStore } from "@/store/useStore"
+import { toast } from "sonner"
+import JSZip from "jszip"
+import { saveAs } from "file-saver"
+import * as XLSX from "xlsx"
 
 interface Subject {
   id: string
@@ -38,6 +38,9 @@ export default function SettingsPage() {
   const globalSchoolInfo = useTeacherStore((s) => s.schoolInfo)
   const setGlobalSchoolInfo = useTeacherStore((s) => s.setSchoolInfo)
   
+  // CSRF token for API calls
+  const [csrfToken, setCsrfToken] = useState('')
+
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [saved, setSaved] = useState(false)
   const [schoolInfo, setSchoolInfo] = useState(globalSchoolInfo || {
@@ -55,7 +58,203 @@ export default function SettingsPage() {
   })
 
   // PIN Management
-  const teacherPin = useTeacherStore(s => s.teacherPin)
+  const [isExportingZip, setIsExportingZip] = useState(false)
+
+  // Individual Form Export Modal
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [selectedFormType, setSelectedFormType] = useState<string | null>(null)
+  const [exportMonth, setExportMonth] = useState(new Date().getMonth())
+  const [exportYear, setExportYear] = useState(new Date().getFullYear())
+  const [exportMode, setExportMode] = useState<string>('zip_archive')
+  const [studentLrn, setStudentLrn] = useState<string>('')
+
+  const handleAIImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const toastId = toast.loading(`Uploading image and running AI extraction...`)
+    try {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onloadend = async () => {
+        const res = await fetch('/api/extract-form', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || ''
+          },
+          body: JSON.stringify({ base64Image: reader.result })
+        })
+        if (!res.ok) throw new Error("AI extraction failed.")
+        const data = await res.json()
+        if (data.students && data.students.length > 0) {
+          data.students.forEach((s: any) => {
+            const lrn = s.lrn || String(Math.floor(Math.random() * 900000000000) + 100000000000)
+            const mInitial = s.middleName ? ` ${s.middleName.charAt(0).toUpperCase()}.` : ""
+            const suffixStr = s.suffix ? ` ${s.suffix.toUpperCase()}` : ""
+            const name = `${s.lastName ? s.lastName.toUpperCase() : 'UNKNOWN'}, ${s.firstName ? s.firstName.toUpperCase() : 'UNKNOWN'}${mInitial}${suffixStr}`
+            const sex = (s.sex === 'M' || s.sex === 'F') ? s.sex : "M"
+            useTeacherStore.getState().addStudent({ lrn, name, sex, status: 'ENROLLED' })
+          })
+          toast.success(`Globally imported ${data.students.length} students to the Masterlist!`, { id: toastId })
+        } else {
+          toast.error("No students detected in the image.", { id: toastId })
+        }
+      }
+    } catch (err) {
+      toast.error("Failed to import data via AI.", { id: toastId })
+    }
+  }
+
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const toastId = toast.loading(`Parsing ${file.name}...`)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json<any>(worksheet, { header: 1 })
+
+      if (!jsonData || jsonData.length < 2) {
+        toast.error("Excel file appears to be empty or missing data rows.", { id: toastId })
+        return
+      }
+
+      const headers: string[] = (jsonData[0] as any[]).map((h: any) => String(h || '').toLowerCase().trim())
+      const colMap: Record<string, number> = {}
+      headers.forEach((h, i) => {
+        if (h.includes('lrn')) colMap['lrn'] = i
+        else if (h.includes('name') || h.includes('learner')) colMap['name'] = i
+        else if (h.includes('sex') || h.includes('gender')) colMap['sex'] = i
+        else if (h.includes('status') || h.includes('remark')) colMap['status'] = i
+      })
+
+      if (colMap['lrn'] === undefined || colMap['name'] === undefined) {
+        toast.error("Required columns not found. Expected: LRN, Name, Sex, Status (optional).", { id: toastId })
+        return
+      }
+
+      let count = 0
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i] as any[]
+        if (!row || row.every(cell => cell == null || String(cell).trim() === '')) continue
+
+        const lrn = String(row[colMap['lrn']] || '').trim()
+        const name = String(row[colMap['name']] || '').trim()
+        let sex = String(row[colMap['sex']] || 'M').trim().toUpperCase()
+        if (sex !== 'M' && sex !== 'F') sex = 'M'
+        const status = colMap['status'] !== undefined ? String(row[colMap['status']] || 'ENROLLED').trim() : 'ENROLLED'
+
+        if (lrn && name) {
+          useTeacherStore.getState().addStudent({ lrn, name, sex: sex as 'M' | 'F', status })
+          count++
+        }
+      }
+
+      toast.success(`Imported ${count} students from Excel`, { id: toastId })
+      e.target.value = ''
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to parse Excel file. Ensure it is a valid .xlsx or .csv.", { id: toastId })
+    }
+  }
+
+  const handleExportZip = async () => {
+    setIsExportingZip(true)
+    const toastId = toast.loading("Generating ZIP archive containing all DepEd Forms...")
+    try {
+      const store = useTeacherStore.getState()
+      const students = store.students
+      const attendance = store.attendance
+      const schoolInfo = store.schoolInfo
+
+      const zip = new JSZip()
+      
+      const fetchForm = async (formType: string, bodyData: any) => {
+        const res = await fetch('/api/export/sf', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || ''
+          },
+          body: JSON.stringify(bodyData)
+        })
+        if (!res.ok) throw new Error(`Failed to generate ${formType}`)
+        return await res.blob()
+      }
+
+      toast.loading("Generating SF1 Masterlist...", { id: toastId })
+      const sf1 = await fetchForm('sf1', { form: 'sf1', students, schoolInfo })
+      zip.file(`SF1_Masterlist_${schoolInfo.section}.xlsx`, sf1)
+
+      toast.loading("Generating SF2 Attendance...", { id: toastId })
+      const sf2 = await fetchForm('sf2', { form: 'sf2', students, attendance, schoolInfo, year: new Date().getFullYear(), month: new Date().getMonth() })
+      zip.file(`SF2_Attendance_${schoolInfo.section}.xlsx`, sf2)
+
+      toast.loading("Generating SF5 Promotion...", { id: toastId })
+      const sf5 = await fetchForm('sf5', { form: 'sf5', students, schoolInfo })
+      zip.file(`SF5_Promotion_${schoolInfo.section}.xlsx`, sf5)
+
+      toast.loading("Compressing forms...", { id: toastId })
+      const content = await zip.generateAsync({ type: "blob" })
+      saveAs(content, `DepEd_Forms_${schoolInfo.section}_${new Date().toISOString().slice(0, 10)}.zip`)
+      
+      toast.success("All forms exported successfully as a ZIP archive!", { id: toastId })
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to export ZIP archive.", { id: toastId })
+    } finally {
+      setIsExportingZip(false)
+    }
+  }
+
+  const handleExportSingle = async (formType: string) => {
+    const toastId = toast.loading(`Generating ${formType.toUpperCase()}...`)
+    try {
+      const store = useTeacherStore.getState()
+      const students = store.students
+      const attendance = store.attendance
+      const schoolInfo = store.schoolInfo
+      const grades = store.grades
+
+      const body: any = { form: formType, students, schoolInfo }
+      if (formType === 'sf2' || formType === 'sf4') {
+        body.year = exportYear
+        body.month = exportMonth
+      }
+      if (formType === 'sf3') {
+        body.books = store.books
+      }
+      if (formType === 'sf9' || formType === 'sf10' || formType === 'composite') {
+        body.grades = grades
+        body.attendance = attendance
+      }
+      if (formType === 'sf9' || formType === 'sf10') {
+        body.exportMode = exportMode
+        if (exportMode === 'specific_student') {
+          body.studentLrn = studentLrn
+        }
+      }
+
+      const res = await fetch('/api/export/sf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      if (!res.ok) throw new Error(`Failed to generate ${formType}`)
+      const blob = await res.blob()
+      const filename = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || `${formType}.xlsx`
+      saveAs(blob, filename)
+      toast.success(`${formType.toUpperCase()} exported successfully!`, { id: toastId })
+      setExportModalOpen(false)
+    } catch (err) {
+      console.error(err)
+      toast.error(`Failed to export ${formType.toUpperCase()}.`, { id: toastId })
+    }
+  }
+
+  const teacherPin = useTeacherStore(s => s.teacherPinPlain)
   const setTeacherPin = useTeacherStore(s => s.setTeacherPin)
   const [pinForm, setPinForm] = useState({ current: '', newPin: '', confirm: '' })
   const [pinSaved, setPinSaved] = useState(false)
@@ -69,6 +268,16 @@ export default function SettingsPage() {
     if (globalSchoolInfo) {
        setSchoolInfo(globalSchoolInfo)
     }
+    // Fetch CSRF token for API calls
+    fetch('/api/export/sf')
+      .then(r => r.json())
+      .then(d => {
+        if (d.csrfToken) {
+          setCsrfToken(d.csrfToken)
+          document.cookie = `csrf-token=${d.csrfToken}; path=/; SameSite=Strict`
+        }
+      })
+      .catch(() => {})
     setMounted(true)
   }, [globalSchoolInfo])
 
@@ -97,7 +306,7 @@ export default function SettingsPage() {
     // Math guardrail for grade integrity
     for (const sub of subjects) {
         if (sub.wwWeight + sub.ptWeight + sub.qaWeight !== 100) {
-            alert(`Validation Error: Grading weights for "${sub.name || 'Subject'}" must exactly equal 100%. Please adjust before saving.`)
+            toast.error(`Validation Error: Grading weights for "${sub.name || 'Subject'}" must exactly equal 100%. Please adjust before saving.`)
             return
         }
     }
@@ -131,9 +340,9 @@ export default function SettingsPage() {
            setSchoolInfo(config.schoolInfo)
            setGlobalSchoolInfo(config.schoolInfo)
         }
-        alert("Settings imported successfully!")
+        toast.success("Settings imported successfully!")
       } catch {
-        alert("Invalid config file.")
+        toast.error("Invalid config file.")
       }
     }
     reader.readAsText(file)
@@ -141,113 +350,163 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage subjects, school info, and data import/export.</p>
+          <h1 data-testid="settings-heading" className="text-2xl font-black tracking-tight" style={{ color: "#111A24" }}>Settings</h1>
+          <p className="skeu-label mt-1">Manage subjects, school info, and data import/export.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleExportConfig} className="bg-white">
-            <Download className="mr-2 h-4 w-4" /> Export Config
-          </Button>
-          <label>
+          <button onClick={handleExportConfig} className="skeu-btn-ghost inline-flex items-center h-9 px-4 rounded-xl text-sm gap-2">
+            <Download size={16} /> Export Config
+          </button>
+          <label className="cursor-pointer">
             <input type="file" accept=".json" className="hidden" onChange={handleImportConfig} />
-            <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-9 px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-colors">
-              <Upload className="mr-2 h-4 w-4" /> Import Config
+            <div className="skeu-btn-ghost inline-flex items-center h-9 px-4 rounded-xl text-sm gap-2">
+              <Upload size={16} /> Import Config
             </div>
           </label>
-          <Button onClick={handleSave} className={`transition-all active:scale-95 ${saved ? 'bg-blue-700' : 'bg-[#E3001B] hover:bg-[#B30015]'}`}>
-            {saved ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Saved!</> : <><Save className="mr-2 h-4 w-4" /> Save Settings</>}
-          </Button>
+          <button onClick={handleSave} className={`skeu-btn inline-flex items-center h-9 px-4 rounded-xl text-sm gap-2 transition-all active:scale-95 ${saved ? 'opacity-90' : ''}`}>
+            {saved ? <><CheckCircle2 size={16} /> Saved!</> : <><Save size={16} /> Save Settings</>}
+          </button>
         </div>
       </div>
 
       {saved && (
-        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 shadow-sm">
-          <CheckCircle2 className="h-5 w-5 text-[#003876] shrink-0" />
-          <p className="font-semibold text-sm">All settings saved to local storage.</p>
+        <div className="animate-in slide-in-from-top-2 fade-in duration-300 flex items-center gap-3 rounded-xl px-4 py-3"
+          style={{ background: "linear-gradient(160deg, #E8F7EE 0%, #DDEEE5 100%)", border: "1px solid #A8D8BA", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+          <CheckCircle2 size={20} style={{ color: "#003876" }} className="shrink-0" />
+          <p className="font-bold text-sm" style={{ color: "#003876" }}>All settings saved to local storage.</p>
         </div>
       )}
 
       {/* School Information */}
-      <Card className="bg-white shadow-sm border border-slate-200/60">
-        <CardHeader className="border-b bg-slate-50/50 pb-4">
-          <div className="flex items-center gap-2">
-            <School className="h-5 w-5 text-[#003876]" />
-            <CardTitle>School Information</CardTitle>
+      <div className="skeu-card overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4"
+          style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(180deg, #E0F0FF, #C8E0FF)", border: "1px solid #A8C8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+            <School size={14} style={{ color: "#003876" }} />
           </div>
-          <CardDescription>This information appears on all generated forms (SF1, SF2, SF5).</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
+          <div>
+            <p className="font-black text-sm" style={{ color: "#111A24" }}>School Information</p>
+            <p className="skeu-label mt-0.5">This information appears on all generated forms (SF1, SF2, SF5).</p>
+          </div>
+        </div>
+        <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
-              <Label>School Name</Label>
-              <Input value={schoolInfo.schoolName} onChange={e => setSchoolInfo({...schoolInfo, schoolName: e.target.value})} className="bg-white font-semibold" />
+              <label className="skeu-label">School Name</label>
+              <input
+                value={schoolInfo.schoolName}
+                onChange={e => setSchoolInfo({...schoolInfo, schoolName: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm font-semibold"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>School ID</Label>
-              <Input value={schoolInfo.schoolId} onChange={e => setSchoolInfo({...schoolInfo, schoolId: e.target.value})} className="bg-white" />
+              <label className="skeu-label">School ID</label>
+              <input
+                value={schoolInfo.schoolId}
+                onChange={e => setSchoolInfo({...schoolInfo, schoolId: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Division</Label>
-              <Input value={schoolInfo.division} onChange={e => setSchoolInfo({...schoolInfo, division: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Division</label>
+              <input
+                value={schoolInfo.division}
+                onChange={e => setSchoolInfo({...schoolInfo, division: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Region</Label>
-              <Input value={schoolInfo.region} onChange={e => setSchoolInfo({...schoolInfo, region: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Region</label>
+              <input
+                value={schoolInfo.region}
+                onChange={e => setSchoolInfo({...schoolInfo, region: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Grade Level</Label>
-              <Input value={schoolInfo.gradeLevel} onChange={e => setSchoolInfo({...schoolInfo, gradeLevel: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Grade Level</label>
+              <input
+                value={schoolInfo.gradeLevel}
+                onChange={e => setSchoolInfo({...schoolInfo, gradeLevel: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Section</Label>
-              <Input value={schoolInfo.section} onChange={e => setSchoolInfo({...schoolInfo, section: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Section</label>
+              <input
+                value={schoolInfo.section}
+                onChange={e => setSchoolInfo({...schoolInfo, section: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>School Year</Label>
-              <Input value={schoolInfo.schoolYear} onChange={e => setSchoolInfo({...schoolInfo, schoolYear: e.target.value})} className="bg-white" />
+              <label className="skeu-label">School Year</label>
+              <input
+                value={schoolInfo.schoolYear}
+                onChange={e => setSchoolInfo({...schoolInfo, schoolYear: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Current Quarter</Label>
-              <Input value={schoolInfo.quarter} onChange={e => setSchoolInfo({...schoolInfo, quarter: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Current Quarter</label>
+              <input
+                value={schoolInfo.quarter}
+                onChange={e => setSchoolInfo({...schoolInfo, quarter: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Class Adviser Name</Label>
-              <Input value={schoolInfo.adviserName} onChange={e => setSchoolInfo({...schoolInfo, adviserName: e.target.value})} className="bg-white" />
+              <label className="skeu-label">Class Adviser Name</label>
+              <input
+                value={schoolInfo.adviserName}
+                onChange={e => setSchoolInfo({...schoolInfo, adviserName: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>School Head Name</Label>
-              <Input value={schoolInfo.schoolHeadName} onChange={e => setSchoolInfo({...schoolInfo, schoolHeadName: e.target.value})} className="bg-white" />
+              <label className="skeu-label">School Head Name</label>
+              <input
+                value={schoolInfo.schoolHeadName}
+                onChange={e => setSchoolInfo({...schoolInfo, schoolHeadName: e.target.value})}
+                className="skeu-input px-3 py-2 w-full text-sm"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Subject Management */}
-      <Card className="bg-white shadow-sm border border-slate-200/60 overflow-hidden">
-        <CardHeader className="border-b bg-slate-50/50 pb-4 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-blue-600" />
+      <div className="skeu-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4"
+          style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(180deg, #E0F0FF, #C8E0FF)", border: "1px solid #A8C8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+              <BookOpen size={14} style={{ color: "#003876" }} />
+            </div>
             <div>
-              <CardTitle>Subject Configuration</CardTitle>
-              <CardDescription className="mt-1">Add, edit, or remove subjects and their DepEd grading weights.</CardDescription>
+              <p className="font-black text-sm" style={{ color: "#111A24" }}>Subject Configuration</p>
+              <p className="skeu-label mt-0.5">Add, edit, or remove subjects and their DepEd grading weights.</p>
             </div>
           </div>
-          <Button onClick={handleAddSubject} size="sm" variant="outline" className="bg-white border-blue-200 text-blue-600 hover:bg-blue-50">
-            <Plus className="mr-2 h-4 w-4" /> Add Subject
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+          <button onClick={handleAddSubject} className="skeu-btn-ghost inline-flex items-center h-8 px-3 rounded-xl text-xs gap-1.5">
+            <Plus size={14} /> Add Subject
+          </button>
+        </div>
+        <div className="overflow-x-auto">
           <Table className="min-w-[700px]">
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="w-[250px]">Subject Name</TableHead>
-                <TableHead className="w-[100px]">Abbreviation</TableHead>
-                <TableHead className="text-center w-[100px]">WW %</TableHead>
-                <TableHead className="text-center w-[100px]">PT %</TableHead>
-                <TableHead className="text-center w-[100px]">QA %</TableHead>
-                <TableHead className="text-center w-[80px]">Total</TableHead>
+            <TableHeader>
+              <TableRow style={{ background: "#F4F7FC", borderBottom: "1px solid #DDE4EE" }}>
+                <TableHead className="skeu-label w-[250px]">Subject Name</TableHead>
+                <TableHead className="skeu-label w-[100px]">Abbreviation</TableHead>
+                <TableHead className="skeu-label text-center w-[100px]">WW %</TableHead>
+                <TableHead className="skeu-label text-center w-[100px]">PT %</TableHead>
+                <TableHead className="skeu-label text-center w-[100px]">QA %</TableHead>
+                <TableHead className="skeu-label text-center w-[80px]">Total</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -256,57 +515,65 @@ export default function SettingsPage() {
                 const total = subject.wwWeight + subject.ptWeight + subject.qaWeight
                 const isValid = total === 100
                 return (
-                  <TableRow key={subject.id} className="hover:bg-slate-50/50">
+                  <TableRow key={subject.id} className="group transition-colors"
+                    style={{ borderBottom: "1px solid #EEF2F8" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(28,165,96,0.03)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                  >
                     <TableCell>
-                      <Input 
-                        value={subject.name} 
+                      <input
+                        value={subject.name}
                         onChange={e => handleSubjectChange(subject.id, 'name', e.target.value)}
                         placeholder="e.g. Filipino"
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#003876] h-9"
+                        className="skeu-input px-2 py-1.5 text-sm w-full"
                       />
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        value={subject.abbreviation} 
+                      <input
+                        value={subject.abbreviation}
                         onChange={e => handleSubjectChange(subject.id, 'abbreviation', e.target.value.toUpperCase())}
                         placeholder="FIL"
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-[#003876] h-9 text-center font-mono"
                         maxLength={4}
+                        className="skeu-input px-2 py-1.5 text-sm w-full text-center font-mono"
                       />
                     </TableCell>
                     <TableCell>
-                      <Input 
+                      <input
                         type="number"
-                        value={subject.wwWeight} 
+                        value={subject.wwWeight}
                         onChange={e => handleSubjectChange(subject.id, 'wwWeight', parseInt(e.target.value) || 0)}
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-blue-500 h-9 text-center w-16 mx-auto"
+                        className="skeu-input px-2 py-1.5 text-sm w-16 mx-auto text-center"
                       />
                     </TableCell>
                     <TableCell>
-                      <Input 
+                      <input
                         type="number"
-                        value={subject.ptWeight} 
+                        value={subject.ptWeight}
                         onChange={e => handleSubjectChange(subject.id, 'ptWeight', parseInt(e.target.value) || 0)}
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-blue-500 h-9 text-center w-16 mx-auto"
+                        className="skeu-input px-2 py-1.5 text-sm w-16 mx-auto text-center"
                       />
                     </TableCell>
                     <TableCell>
-                      <Input 
+                      <input
                         type="number"
-                        value={subject.qaWeight} 
+                        value={subject.qaWeight}
                         onChange={e => handleSubjectChange(subject.id, 'qaWeight', parseInt(e.target.value) || 0)}
-                        className="bg-transparent border-transparent hover:border-slate-200 focus:border-purple-500 h-9 text-center w-16 mx-auto"
+                        className="skeu-input px-2 py-1.5 text-sm w-16 mx-auto text-center"
                       />
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isValid ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-600'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isValid ? 'skeu-badge-green' : ''}`}
+                        style={isValid ? {} : { background: "#FFF0F0", color: "#C03030", border: "1px solid #E8AAAA" }}>
                         {total}%
                       </span>
                     </TableCell>
                     <TableCell>
-                      <button 
+                      <button
                         onClick={() => handleRemoveSubject(subject.id)}
-                        className="flex items-center justify-center h-8 w-8 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
+                        style={{ color: "#B8C4D4" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#C03030"; (e.currentTarget as HTMLElement).style.background = "#FFF0F0" }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#B8C4D4"; (e.currentTarget as HTMLElement).style.background = "transparent" }}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -316,148 +583,190 @@ export default function SettingsPage() {
               })}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Data Import/Export Hub */}
-      <Card className="bg-white shadow-sm border border-slate-200/60">
-        <CardHeader className="border-b bg-slate-50/50 pb-4">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-purple-600" />
-            <div>
-              <CardTitle>Data Import & Export Hub</CardTitle>
-              <CardDescription className="mt-1">Import student data from Excel files, photos, or export DepEd forms.</CardDescription>
+      <div className="skeu-card overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4"
+          style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(180deg, #F0E8FF, #E4D8FF)", border: "1px solid #C8B8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+            <FileSpreadsheet size={14} style={{ color: "#7040C0" }} />
+          </div>
+          <div>
+            <p className="font-black text-sm" style={{ color: "#111A24" }}>Data Import & Export Hub</p>
+            <p className="skeu-label mt-0.5">Import student data from Excel files, photos, or export DepEd forms.</p>
+          </div>
+        </div>
+        <div className="p-5">
+          {/* Individual Form Export */}
+          <div className="mb-5 p-5 rounded-xl"
+            style={{
+              background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+              border: "1px solid #DDE4EE",
+              boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+            }}>
+            <p className="font-bold text-sm mb-3" style={{ color: "#111A24" }}>Individual Form Export</p>
+            <div className="flex flex-wrap gap-2">
+              {['sf1', 'sf2', 'sf3', 'sf4', 'sf5', 'sf6', 'sf8', 'sf9', 'sf10', 'composite'].map((ft) => (
+                <button
+                  key={ft}
+                  onClick={() => { setSelectedFormType(ft); setExportModalOpen(true) }}
+                  className="skeu-btn-ghost inline-flex items-center h-8 px-3 rounded-xl text-xs gap-1.5 capitalize"
+                >
+                  {ft === 'composite' ? 'Composite Grades' : ft.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Import from Excel */}
             <label className="cursor-pointer group">
-              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) alert(`File "${file.name}" selected. Excel import will parse and load student data.`)
-              }} />
-              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-blue-300 hover:bg-blue-50/30 transition-all group-hover:shadow-sm">
-                <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
-                  <FileSpreadsheet size={24} />
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleExcelImport} />
+              <div className="flex flex-col items-center p-6 rounded-xl transition-all group-hover:-translate-y-0.5"
+                style={{
+                  background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+                  border: "2px dashed #DDE4EE",
+                  boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+                }}>
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+                  style={{ background: "linear-gradient(180deg, #E0F0FF, #C8E0FF)", border: "1px solid #A8C8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+                  <FileSpreadsheet size={24} style={{ color: "#003876" }} />
                 </div>
-                <p className="font-semibold text-sm text-slate-800">Import Excel</p>
-                <p className="text-[11px] text-slate-500 text-center mt-1">Upload .xlsx or .csv files with student data</p>
+                <p className="font-bold text-sm" style={{ color: "#111A24" }}>Import Excel</p>
+                <p className="text-[11px] text-center mt-1" style={{ color: "#8898AC" }}>Upload .xlsx or .csv files with student data</p>
               </div>
             </label>
 
             {/* Import from Camera */}
             <label className="cursor-pointer group">
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) alert(`Photo captured! AI OCR will extract student data from the image.`)
-              }} />
-              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-blue-300 hover:bg-blue-50/30 transition-all group-hover:shadow-sm">
-                <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
-                  <Camera size={24} />
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAIImport} />
+              <div className="flex flex-col items-center p-6 rounded-xl transition-all group-hover:-translate-y-0.5"
+                style={{
+                  background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+                  border: "2px dashed #DDE4EE",
+                  boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+                }}>
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+                  style={{ background: "linear-gradient(180deg, #E0F0FF, #C8E0FF)", border: "1px solid #A8C8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+                  <Camera size={24} style={{ color: "#003876" }} />
                 </div>
-                <p className="font-semibold text-sm text-slate-800">Capture Photo</p>
-                <p className="text-[11px] text-slate-500 text-center mt-1">Take a photo of Form 138 or attendance sheet</p>
+                <p className="font-bold text-sm" style={{ color: "#111A24" }}>Capture Photo</p>
+                <p className="text-[11px] text-center mt-1" style={{ color: "#8898AC" }}>Take a photo of Form 138 or attendance sheet</p>
               </div>
             </label>
 
             {/* Import from Image File */}
             <label className="cursor-pointer group">
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) alert(`Image "${file.name}" selected. AI will extract and structure data from the document.`)
-              }} />
-              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-purple-300 hover:bg-purple-50/30 transition-all group-hover:shadow-sm">
-                <div className="h-12 w-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3">
-                  <Sparkles size={24} />
+              <input type="file" accept="image/*" className="hidden" onChange={handleAIImport} />
+              <div className="flex flex-col items-center p-6 rounded-xl transition-all group-hover:-translate-y-0.5"
+                style={{
+                  background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+                  border: "2px dashed #DDE4EE",
+                  boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+                }}>
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+                  style={{ background: "linear-gradient(180deg, #F0E8FF, #E4D8FF)", border: "1px solid #C8B8F0", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+                  <Sparkles size={24} style={{ color: "#7040C0" }} />
                 </div>
-                <p className="font-semibold text-sm text-slate-800">AI Smart Import</p>
-                <p className="text-[11px] text-slate-500 text-center mt-1">Upload any image for AI-powered data extraction</p>
+                <p className="font-bold text-sm" style={{ color: "#111A24" }}>AI Smart Import</p>
+                <p className="text-[11px] text-center mt-1" style={{ color: "#8898AC" }}>Upload any image for AI-powered data extraction</p>
               </div>
             </label>
 
             {/* Export All Forms */}
-            <button onClick={() => alert("Export hub: Select which DepEd forms to download (SF1, SF2, SF5, Composite)")} className="group text-left">
-              <div className="flex flex-col items-center p-6 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/30 hover:border-amber-300 hover:bg-amber-50/30 transition-all group-hover:shadow-sm">
-                <div className="h-12 w-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-3">
-                  <Download size={24} />
+            <button disabled={isExportingZip} onClick={handleExportZip} data-testid="export-all-forms" className="group text-left">
+              <div className={`flex flex-col items-center p-6 rounded-xl transition-all ${isExportingZip ? 'opacity-70' : 'group-hover:-translate-y-0.5'}`}
+                style={{
+                  background: "linear-gradient(160deg, #FFFFFF 0%, #FAFCFF 100%)",
+                  border: "2px dashed #DDE4EE",
+                  boxShadow: "0 1px 0 rgba(255,255,255,1) inset, 0 2px 6px rgba(0,0,0,0.05)"
+                }}>
+                <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-3"
+                  style={{ background: "linear-gradient(180deg, #FFF4E0, #FFE8C0)", border: "1px solid #E8C878", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+                  {isExportingZip ? <div className="animate-spin w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full" /> : <Download size={24} style={{ color: "#D08010" }} />}
                 </div>
-                <p className="font-semibold text-sm text-slate-800">Export Forms</p>
-                <p className="text-[11px] text-slate-500 text-center mt-1">Download SF1, SF2, SF5, and Composite as Excel</p>
+                <p className="font-bold text-sm" style={{ color: "#111A24" }}>{isExportingZip ? 'Compressing...' : 'Export All Forms'}</p>
+                <p className="text-[11px] text-center mt-1" style={{ color: "#8898AC" }}>Download SF1, SF2, and SF5 as a ZIP archive</p>
               </div>
             </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* PIN Management */}
-      <Card className="bg-white shadow-sm border border-slate-200/60">
-        <CardHeader className="border-b bg-slate-50/50 pb-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-amber-600" />
-            <div>
-              <CardTitle>Teacher PIN / Security</CardTitle>
-              <CardDescription className="mt-1">
-                Your 4-digit PIN is required to edit past-date attendance. Default PIN is <strong>1234</strong>.
-              </CardDescription>
-            </div>
+      <div className="skeu-card overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4"
+          style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(180deg, #FFE8C0, #FFD890)", border: "1px solid #E8C060", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+            <ShieldCheck size={14} style={{ color: "#C07800" }} />
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
+          <div>
+            <p className="font-black text-sm" style={{ color: "#111A24" }}>Teacher PIN / Security</p>
+            <p className="skeu-label mt-0.5">Your 4-digit PIN is required to edit past-date attendance. Default PIN is <strong>1234</strong>.</p>
+          </div>
+        </div>
+        <div className="p-5">
           {pinSaved && (
-            <div className="mb-4 flex items-center gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3">
-              <CheckCircle2 className="h-5 w-5 text-[#003876] shrink-0" />
-              <p className="font-semibold text-sm">PIN updated successfully!</p>
+            <div className="mb-4 flex items-center gap-3 rounded-xl px-4 py-3"
+              style={{ background: "linear-gradient(160deg, #E8F7EE 0%, #DDEEE5 100%)", border: "1px solid #A8D8BA", boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset" }}>
+              <CheckCircle2 size={20} style={{ color: "#003876" }} className="shrink-0" />
+              <p className="font-bold text-sm" style={{ color: "#003876" }}>PIN updated successfully!</p>
             </div>
           )}
           {pinError && (
-            <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
-              ⚠️ {pinError}
+            <div className="mb-4 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium"
+              style={{ background: "linear-gradient(160deg, #FFF8F8 0%, #FFF0F0 100%)", border: "1px solid #E8AAAA", color: "#C03030" }}>
+              <span>⚠️</span> {pinError}
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl">
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1">
+              <label className="skeu-label flex items-center gap-1">
                 Current PIN
-                <button type="button" onClick={() => setShowPins(v => !v)} className="ml-1 text-slate-400 hover:text-slate-600">
+                <button type="button" onClick={() => setShowPins(v => !v)} className="ml-1 transition-colors" style={{ color: "#B8C4D4" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#5A6A7E")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#B8C4D4")}>
                   {showPins ? <EyeOff size={12} /> : <Eye size={12} />}
                 </button>
-              </Label>
-              <Input
+              </label>
+              <input
                 type={showPins ? "text" : "password"}
                 placeholder="••••"
                 maxLength={4}
                 value={pinForm.current}
                 onChange={e => setPinForm(p => ({ ...p, current: e.target.value.replace(/\D/g, '').slice(0,4) }))}
-                className="bg-white font-mono tracking-widest text-lg text-center h-11"
+                className="skeu-input px-3 py-2 w-full font-mono tracking-widest text-lg text-center h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>New PIN</Label>
-              <Input
+              <label className="skeu-label">New PIN</label>
+              <input
                 type={showPins ? "text" : "password"}
                 placeholder="••••"
                 maxLength={4}
                 value={pinForm.newPin}
                 onChange={e => setPinForm(p => ({ ...p, newPin: e.target.value.replace(/\D/g, '').slice(0,4) }))}
-                className="bg-white font-mono tracking-widest text-lg text-center h-11"
+                className="skeu-input px-3 py-2 w-full font-mono tracking-widest text-lg text-center h-11"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Confirm New PIN</Label>
-              <Input
+              <label className="skeu-label">Confirm New PIN</label>
+              <input
                 type={showPins ? "text" : "password"}
                 placeholder="••••"
                 maxLength={4}
                 value={pinForm.confirm}
                 onChange={e => setPinForm(p => ({ ...p, confirm: e.target.value.replace(/\D/g, '').slice(0,4) }))}
-                className="bg-white font-mono tracking-widest text-lg text-center h-11"
+                className="skeu-input px-3 py-2 w-full font-mono tracking-widest text-lg text-center h-11"
               />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <Button
+            <button
               onClick={() => {
                 setPinError('')
                 if (pinForm.current !== teacherPin) { setPinError('Current PIN is incorrect.'); return }
@@ -468,16 +777,115 @@ export default function SettingsPage() {
                 setPinSaved(true)
                 setTimeout(() => setPinSaved(false), 3000)
               }}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="skeu-btn inline-flex items-center h-9 px-4 rounded-xl text-sm gap-2 transition-all active:scale-95"
             >
-              <ShieldCheck className="mr-2 h-4 w-4" /> Update PIN
-            </Button>
-            <p className="text-xs text-slate-500">
-              Current PIN: <span className="font-mono font-bold text-slate-700">{showPins ? teacherPin : '••••'}</span>
+              <ShieldCheck size={16} /> Update PIN
+            </button>
+            <p className="text-xs" style={{ color: "#8898AC" }}>
+              Current PIN: <span className="font-mono font-bold" style={{ color: "#5A6A7E" }}>{showPins ? teacherPin : '••••'}</span>
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Export Modal */}
+      {exportModalOpen && selectedFormType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="skeu-card w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ background: "linear-gradient(180deg, #FAFCFF 0%, #F4F7FC 100%)", borderBottom: "1px solid #DDE4EE" }}>
+              <p className="font-black text-sm" style={{ color: "#111A24" }}>
+                Export {selectedFormType === 'composite' ? 'Composite Grades' : selectedFormType.toUpperCase()}
+              </p>
+              <button onClick={() => setExportModalOpen(false)} className="text-sm" style={{ color: "#8898AC" }}>✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              {(selectedFormType === 'sf2' || selectedFormType === 'sf4') && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="skeu-label">Month</label>
+                    <select
+                      className="skeu-input px-3 py-2 w-full text-sm"
+                      value={exportMonth}
+                      onChange={e => setExportMonth(parseInt(e.target.value))}
+                    >
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                        <option key={m} value={i}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="skeu-label">Year</label>
+                    <input
+                      type="number"
+                      className="skeu-input px-3 py-2 w-full text-sm"
+                      value={exportYear}
+                      onChange={e => setExportYear(parseInt(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(selectedFormType === 'sf9' || selectedFormType === 'sf10') && (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="skeu-label">Export Mode</label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input 
+                          type="radio" 
+                          name="exportMode" 
+                          value="zip_archive" 
+                          checked={exportMode === 'zip_archive'} 
+                          onChange={(e) => setExportMode(e.target.value)} 
+                        />
+                        ZIP Archive (All Students)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input 
+                          type="radio" 
+                          name="exportMode" 
+                          value="specific_student" 
+                          checked={exportMode === 'specific_student'} 
+                          onChange={(e) => {
+                            setExportMode(e.target.value);
+                            if (!studentLrn && useTeacherStore.getState().students.length > 0) {
+                              setStudentLrn(useTeacherStore.getState().students[0].lrn);
+                            }
+                          }} 
+                        />
+                        Specific Student
+                      </label>
+                    </div>
+                  </div>
+
+                  {exportMode === 'specific_student' && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                      <label className="skeu-label">Select Student</label>
+                      <select
+                        className="skeu-input px-3 py-2 w-full text-sm"
+                        value={studentLrn}
+                        onChange={e => setStudentLrn(e.target.value)}
+                      >
+                        {useTeacherStore.getState().students.map((s) => (
+                          <option key={s.lrn} value={s.lrn}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => handleExportSingle(selectedFormType)}
+                className="skeu-btn w-full inline-flex items-center justify-center h-9 px-4 rounded-xl text-sm gap-2 transition-all active:scale-95"
+              >
+                <Download size={16} /> Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
